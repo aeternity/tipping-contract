@@ -6,70 +6,63 @@ include "Option.aes"
 
 payable contract WaelletTipAnyBasic =
 
+  // TODO: add re-tips to state
   record state =
-    { tips          : map(string * int, tip)
-    , tips_flat     : map(string, int)
+    { tips               : map(string, tip)
+    , tips_index         : map(int, string)
     , pay_for_tx_service : address }
 
   record tip =
-    { sender        : address
-    , received_at   : int
-    , repaid        : bool
-    , amount        : int
-    , note          : option(string) }
+    { id        : int
+    , sender    : address
+    , timestamp : int
+    , repaid    : bool
+    , amount    : int
+    , title     : string }
 
   datatype event =
     TipReceived(address, int, string)
     | TipWithdrawn(address, int, string)
 
-  entrypoint init (relayer: address) : state =
+  entrypoint init(pay_for_tx_service : address) : state =
     { tips = {},
-      tips_flat = {},
-      pay_for_tx_service = relayer }
+      tips_index = {},
+      pay_for_tx_service = pay_for_tx_service }
 
-  payable stateful entrypoint tip (url: string, note: option(string)) : unit =
-    put(state{ tips[(url, size(url))] = new_tip(url, note),
-               tips_flat[url = 0] @ n = n + 1 })
-    Chain.event(TipReceived(Call.caller, Call.value, url))
-
-  entrypoint tips_for_url(url : string) = tips_by_key(url)
   entrypoint get_state() : state = state
 
-  stateful entrypoint claim(url: string, pay_to : address) =
-    allowed()
-    let amount = aggregate_unpaid_tips(url)
-    do_the_stuff(url, size(url) - 1)
-    Chain.spend(pay_to, amount)
-    Chain.event(TipWithdrawn(pay_to, amount, url))
+  // TODO: check if url has already been tipped, if so re-tip
+  payable stateful entrypoint tip(url : string, title : string) : unit =
+    let id = Map.size(state.tips_index)
+    let tip = { id        = id,
+                sender    = Call.caller,
+                timestamp = Chain.timestamp,
+                repaid    = false,
+                amount    = Call.value,
+                title     = title }
+    put(state{ tips[url] = tip, tips_index[id] = url })
+    Chain.event(TipReceived(Call.caller, Call.value, url))
 
-  stateful function do_the_stuff(url, i) =
-    if(i < 0) ()
-    else
-      put(state{ tips[(url, i)].repaid = true })
-      do_the_stuff(url, i - 1)
+  stateful entrypoint claim(url : string, payout_receiver : address) =
+    require_allowed_pay_for_tx_service()
+    let amount = switch(Map.lookup(url, state.tips))
+      None      => 0
+      Some(tip) =>
+        if(tip.repaid)
+          0
+        else
+          put(state{tips[url].repaid = true})
+          tip.amount
 
-  entrypoint unpaid(url : string) =
-    aggregate_unpaid_tips(url)
+    // TODO: find re-tips once implemented
+    require(amount != 0, "NO_ZERO_AMOUNT_PAYOUT")
+    Chain.spend(payout_receiver, amount)
+    Chain.event(TipWithdrawn(payout_receiver, amount, url))
 
-  function aggregate_unpaid_tips(url : string) =
-    List.sum(List.map((x) => x.amount, List.filter((x) => x.repaid == false, tips_for_url(url))))
-
-  function tips_by_key(key : string) =
-    [ state.tips[(key, n)] | n <- [0..size(key) - 1] ]
-
-  function size(key : string) : int = state.tips_flat[key = 0]
-
-  stateful function migrate(new_contract: address) =
-    allowed()
+  stateful function migrate_contract(new_contract : address) =
+    // TODO: disallow use of this contract?
+    require_allowed_pay_for_tx_service()
     Chain.spend(new_contract, Contract.balance)
 
-  function allowed() =
+  function require_allowed_pay_for_tx_service() =
     require(Call.caller == state.pay_for_tx_service, "NOT_ALLOWED")
-
-  stateful function new_tip(url : string, note: option(string)) : tip =
-    { sender        = Call.caller,
-      received_at   = Chain.timestamp,
-      repaid        = false,
-      amount        = Call.value,
-      note          = note }
-
