@@ -1,3 +1,23 @@
+// ISC License
+//
+// Copyright (c) 2020, aeternity developers
+//
+// Permission to use, copy, modify, and/or distribute this software for any
+// purpose with or without fee is hereby granted, provided that the above
+// copyright notice and this permission notice appear in all copies.
+//
+// THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+// REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+// AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+// INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+// LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
+// OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+// PERFORMANCE OF THIS SOFTWARE.
+
+
+// THIS IS NOT SECURITY AUDITED
+// DO NEVER USE THIS WITHOUT SECURITY AUDIT FIRST
+
 @compiler >= 4
 
 include "List.aes"
@@ -6,10 +26,13 @@ include "Option.aes"
 
 payable contract WaelletTipAnyBasic =
 
+  type tip_string = string * string
+
   // TODO: add re-tips to state
   record state =
-    { tips               : map(string, tip)
-    , tips_index         : map(int, string)
+    { tips               : map(tip_string, tip)
+    , tips_index         : map(int, tip_string)
+    , tip_url_titles    : map(string, list(string))
     , pay_for_tx_service : address }
 
   record tip =
@@ -27,12 +50,13 @@ payable contract WaelletTipAnyBasic =
   entrypoint init(pay_for_tx_service : address) : state =
     { tips = {},
       tips_index = {},
+      tip_url_titles = {},
       pay_for_tx_service = pay_for_tx_service }
 
   entrypoint get_state() : state = state
 
-  // TODO: check if url has already been tipped, if so re-tip
   payable stateful entrypoint tip(url : string, title : string) : unit =
+    let tip_url_title = (url, title)
     let id = Map.size(state.tips_index)
     let tip = { id        = id,
                 sender    = Call.caller,
@@ -40,19 +64,22 @@ payable contract WaelletTipAnyBasic =
                 repaid    = false,
                 amount    = Call.value,
                 title     = title }
-    put(state{ tips[url] = tip, tips_index[id] = url })
+    put(state{ tips[tip_url_title] = tip, tips_index[id] = tip_url_title, tip_url_titles[url = []] @ titles = title :: titles })
     Chain.event(TipReceived(Call.caller, Call.value, url))
 
   stateful entrypoint claim(url : string, payout_receiver : address) =
     require_allowed_pay_for_tx_service()
-    let amount = switch(Map.lookup(url, state.tips))
+    let url_strings = List.map((title) => (url, title), Map.lookup_default(url, state.tip_url_titles, []))
+    let get_amount_set_repaid = (tip_url_title) => switch(Map.lookup(tip_url_title, state.tips))
       None      => 0
       Some(tip) =>
         if(tip.repaid)
           0
         else
-          put(state{tips[url].repaid = true})
+          put(state{tips[tip_url_title].repaid = true})
           tip.amount
+
+    let amount = List.sum(List.map(get_amount_set_repaid, url_strings))
 
     // TODO: find re-tips once implemented
     require(amount != 0, "NO_ZERO_AMOUNT_PAYOUT")
