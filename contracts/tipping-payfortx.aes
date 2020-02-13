@@ -29,10 +29,15 @@ payable contract WaelletTipAnyBasic =
   type tip_string = string * string
 
   // TODO: add re-tips to state
+
+  // TODO: maybe only have one map (tipstring, tiptype) where tiptype may be tip or retip
+  // TODO: then we can have in tip, list/map of retips so only have one layer of linear complexity
+  // TODO: consider removing int ids again in favour of tip_string for optimized gas (TEST!!)
   record state =
     { tips               : map(tip_string, tip)
     , tips_index         : map(int, tip_string)
-    , tip_url_titles    : map(string, list(string))
+    , tip_url_titles     : map(string, list(string))
+    , tip_retips         : map(int, map(int, retip))
     , pay_for_tx_service : address }
 
   record tip =
@@ -43,14 +48,20 @@ payable contract WaelletTipAnyBasic =
     , amount    : int
     , title     : string }
 
+  record retip =
+    { sender : address
+    , repaid : bool
+    , amount : int }
+
   datatype event =
     TipReceived(address, int, string)
     | TipWithdrawn(address, int, string)
 
   entrypoint init(pay_for_tx_service : address) : state =
-    { tips = {},
-      tips_index = {},
-      tip_url_titles = {},
+    { tips               = {},
+      tips_index         = {},
+      tip_url_titles     = {},
+      tip_retips         = {},
       pay_for_tx_service = pay_for_tx_service }
 
   entrypoint get_state() : state = state
@@ -64,24 +75,44 @@ payable contract WaelletTipAnyBasic =
                 repaid    = false,
                 amount    = Call.value,
                 title     = title }
-    put(state{ tips[tip_url_title] = tip, tips_index[id] = tip_url_title, tip_url_titles[url = []] @ titles = title :: titles })
+    put(state{ tips[tip_url_title] = tip,
+               tips_index[id] = tip_url_title,
+               tip_url_titles[url = []] @ titles = title :: titles })
     Chain.event(TipReceived(Call.caller, Call.value, url))
+
+  payable stateful entrypoint retip(id : int) : unit =
+    require(Map.member(id, state.tips_index), "ID_UNKNOWN")
+    let retip = { sender = Call.caller,
+                  repaid = false,
+                  amount = Call.value }
+    put(state{ tip_retips[id = {}] @ retips = retips{ [Map.size(retips)] = retip } })
 
   stateful entrypoint claim(url : string, payout_receiver : address) =
     require_allowed_pay_for_tx_service()
     let url_strings = List.map((title) => (url, title), Map.lookup_default(url, state.tip_url_titles, []))
+
+    let get_retips_set_repaid = (id) =>
+      let retips = Map.to_list(Map.lookup_default(id, state.tip_retips, {}))
+      let get_retip_amount_set_repaid = (id_retip) => switch(id_retip)
+        (retip_id, retip) =>
+          if(retip.repaid)
+            0
+          else
+            put(state{tip_retips[tip_url_title] @ retips = retips{ [retip_id].repaid = true } })
+            tip.amount
+      List.sum(List.map(get_retip_amount_set_repaid, retips))
+
     let get_amount_set_repaid = (tip_url_title) => switch(Map.lookup(tip_url_title, state.tips))
       None      => 0
       Some(tip) =>
         if(tip.repaid)
-          0
+          0 + get_retips_set_repaid(tip.id)
         else
           put(state{tips[tip_url_title].repaid = true})
-          tip.amount
+          tip.amount + get_retips_set_repaid(tip.id)
 
-    let amount = List.sum(List.map(get_amount_set_repaid, url_strings))
+    let tips_amount = List.sum(List.map(get_amount_set_repaid, url_strings))
 
-    // TODO: find re-tips once implemented
     require(amount != 0, "NO_ZERO_AMOUNT_PAYOUT")
     Chain.spend(payout_receiver, amount)
     Chain.event(TipWithdrawn(payout_receiver, amount, url))
