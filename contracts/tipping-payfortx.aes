@@ -73,7 +73,7 @@ payable contract WaelletTipAnyBasic =
                 amount    = Call.value,
                 title     = title,
                 retip_ids = [] }
-    put(state{ tips[id] = Tip(tip), tip_urls[url] @ ids = id :: ids })
+    put(state{ tips[id] = Tip(tip), tip_urls[url = []] @ ids = id :: ids })
     Chain.event(TipReceived(Call.caller, Call.value, url))
 
   payable stateful entrypoint retip(id : int) : unit =
@@ -84,7 +84,7 @@ payable contract WaelletTipAnyBasic =
     let retip_id = Map.size(state.tips)
     let tip_url = get_tip_type(id).url
 
-    put(state{ tips[retip_id] = ReTip(retip), tip_urls[tip_url] @ ids = retip_id :: ids })
+    put(state{ tips[retip_id] = ReTip(retip), tip_urls[tip_url = []] @ ids = retip_id :: ids })
 
     let tip = get_tip_type(id)
     let tip' = tip{ retip_ids @ retip_ids = retip_id :: retip_ids }
