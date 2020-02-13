@@ -63,6 +63,8 @@ payable contract WaelletTipAnyBasic =
 
   entrypoint get_state() : state = state
 
+  // in testing each tip for the same url added +5 gas to the execution cost
+  // adding tips for new urls is static after 7 entries in gas usage
   payable stateful entrypoint tip(url : string, title : string) : unit =
     let id = Map.size(state.tips)
     let tip = { id        = id,
@@ -76,6 +78,7 @@ payable contract WaelletTipAnyBasic =
     put(state{ tips[id] = Tip(tip), tip_urls[url = []] @ ids = id :: ids })
     Chain.event(TipReceived(Call.caller, Call.value, url))
 
+  // in testing each retip added +10 gas to the execution cost
   payable stateful entrypoint retip(id : int) : unit =
     require(Map.member(id, state.tips), "ID_UNKNOWN")
     let retip = { sender = Call.caller,
@@ -96,6 +99,8 @@ payable contract WaelletTipAnyBasic =
       Tip(tip) => tip
       _        => abort("ONLY_RETIP_TIP")
 
+  // gas usage increases ~830 for each retip added
+  // iterating already repaid tips is also quite costly at ~490 gas
   stateful entrypoint claim(url : string, payout_receiver : address) =
     require_allowed_pay_for_tx_service()
     let tip_ids = Map.lookup_default(url, state.tip_urls, [])
