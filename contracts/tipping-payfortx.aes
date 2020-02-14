@@ -99,32 +99,28 @@ payable contract WaelletTipAnyBasic =
       Tip(tip) => tip
       _        => abort("ONLY_RETIP_TIP")
 
-  // gas usage increases ~830 for each retip added
-  // iterating already repaid tips is also quite costly at ~490 gas
+  // gas usage increases ~300 for each retip added
+  // iterating already repaid at ~110 gas
   stateful entrypoint claim(url : string, payout_receiver : address) =
     require_allowed_pay_for_tx_service()
     let tip_ids = Map.lookup_default(url, state.tip_urls, [])
-    let amount = List.sum(List.map(amout_and_set_repaid, tip_ids))
+    let amount = sum_amout_and_set_repaid(tip_ids, 0)
     require(amount != 0, "NO_ZERO_AMOUNT_PAYOUT")
     Chain.spend(payout_receiver, amount)
     Chain.event(TipWithdrawn(payout_receiver, amount, url))
 
-  stateful function amout_and_set_repaid(id : int) =
-    switch(state.tips[id])
-      Tip(tip) =>
-        if(tip.repaid)
-          0
-        else
-          let tip' = tip{ repaid = true }
-          put(state{ tips[id] = Tip(tip') })
-          tip.amount
-      ReTip(retip) =>
-        if(retip.repaid)
-          0
-        else
-          let retip' = retip{ repaid = true }
-          put(state{ tips[id] = ReTip(retip') })
-          retip.amount
+  stateful function
+    sum_amout_and_set_repaid([], n) = n
+    sum_amout_and_set_repaid(tid :: tids, n) =
+      switch(state.tips[tid])
+        Tip({repaid = true}) => sum_amout_and_set_repaid(tids, n)
+        Tip(t)               =>
+          put(state{ tips[tid] = Tip(t{ repaid = true }) })
+          sum_amout_and_set_repaid(tids, n + t.amount)
+        ReTip({repaid = true}) => sum_amout_and_set_repaid(tids, n)
+        ReTip(t)               =>
+          put(state{ tips[tid] = ReTip(t{ repaid = true }) })
+          sum_amout_and_set_repaid(tids, n + t.amount)
 
   stateful function migrate_contract(new_contract : address) =
     // TODO: disallow use of this contract?
