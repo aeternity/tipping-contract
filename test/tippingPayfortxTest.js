@@ -70,37 +70,13 @@ describe('Tipping Payfortx Contract', () => {
         const tip = await contract.methods.tip('domain.test', 'Hello World', {amount : 100});
         assert.equal(tip.result.returnType, 'ok');
 
-        const state = await contract.methods.get_state();
 
-        assert.equal(state.decodedResult.tip_urls[0][0], 'domain.test');
-        assert.deepEqual(state.decodedResult.tip_urls[0][1], [0]);
-
-        assert.equal(state.decodedResult.tips[0][0], 0);
-        assert.equal(state.decodedResult.tips[0][1].Tip[0].id, 0);
-        assert.equal(state.decodedResult.tips[0][1].Tip[0].sender, wallets[0].publicKey);
-        assert.equal(state.decodedResult.tips[0][1].Tip[0].repaid, false);
-        assert.equal(state.decodedResult.tips[0][1].Tip[0].url, 'domain.test');
-        assert.equal(state.decodedResult.tips[0][1].Tip[0].title, 'Hello World');
-        assert.equal(state.decodedResult.tips[0][1].Tip[0].amount, 100);
-        assert.deepEqual(state.decodedResult.tips[0][1].Tip[0].retip_ids, []);
     });
 
     it('Tipping Payfortx Contract: Retip', async () => {
         const tip = await contract.methods.retip(0, {amount : 100});
         assert.equal(tip.result.returnType, 'ok');
 
-        const state = await contract.methods.get_state();
-
-        assert.equal(state.decodedResult.tip_urls[0][0], 'domain.test');
-        assert.deepEqual(state.decodedResult.tip_urls[0][1], [1, 0]);
-
-        assert.equal(state.decodedResult.tips[1][1].ReTip[0].amount, 100);
-        assert.equal(state.decodedResult.tips[1][1].ReTip[0].sender, wallets[0].publicKey);
-        assert.equal(state.decodedResult.tips[1][1].ReTip[0].repaid, false);
-
-        assert.equal(state.decodedResult.tips[0][0], 0);
-        assert.equal(state.decodedResult.tips[0][1].Tip[0].amount, 100);
-        assert.deepEqual(state.decodedResult.tips[0][1].Tip[0].retip_ids, [1]);
     });
 
     it('Tipping Payfortx Contract: Claim', async () => {
@@ -110,10 +86,6 @@ describe('Tipping Payfortx Contract', () => {
 
         const balanceAfter = await client.balance(wallets[1].publicKey);
         assert.equal(parseInt(balanceBefore) + 200, parseInt(balanceAfter));
-
-        const state = await contract.methods.get_state();
-        assert.equal(state.decodedResult.tips[0][1].Tip[0].repaid, true);
-        assert.equal(state.decodedResult.tips[1][1].ReTip[0].repaid, true);
     });
 
 });
