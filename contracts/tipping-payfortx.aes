@@ -20,33 +20,32 @@
 
 @compiler >= 4
 
-include "List.aes"
-include "Func.aes"
-include "Option.aes"
+contract TippingPayForTx =
 
-payable contract WaelletTipAnyBasic =
+  type tip_id       = int
+  type url_id       = int
+  type retip_id     = int
+  type url          = string
+  type claim_id     = int
 
-  record state =
-    { tips               : map(int, tip)
-    , retips             : map(int, retip)
-    , tip_urls           : map(string, list(int))
-    , retip_urls         : map(string, list(int))
-    , pay_for_tx_service : address }
+  record tip = { sender    : address
+               , title     : string
+               , claim_id  : claim_id
+               , timestamp : int
+               , url_id    : url_id
+               , amount    : int
+               , retips    : list(int) }
 
-  record tip =
-    { id        : int
-    , sender    : address
-    , timestamp : int
-    , repaid    : bool
-    , url       : string
-    , amount    : int
-    , title     : string
-    , retip_ids : list(int) }
+  record retip = { sender   : address
+                 , amount   : int
+                 , claim_id : claim_id }
 
-  record retip =
-    { sender : address
-    , repaid : bool
-    , amount : int }
+  record state = { urls               : map(url, url_id)
+                 , claim              : map(url_id, claim_id * int)
+                 , url_index          : map(url_id, url)
+                 , tips               : map(tip_id, tip)
+                 , retips             : map(retip_id, retip)
+                 , pay_for_tx_service : address }
 
   datatype event =
     TipReceived(address, int, string)
@@ -54,74 +53,54 @@ payable contract WaelletTipAnyBasic =
     | TipWithdrawn(address, int, string)
 
   entrypoint init(pay_for_tx_service : address) : state =
-    { tips               = {},
-      retips             = {},
-      tip_urls           = {},
-      retip_urls         = {},
-      pay_for_tx_service = pay_for_tx_service }
+    { urls = {}, claim = {}, url_index = {}, tips = {}, retips = {}, pay_for_tx_service = pay_for_tx_service }
 
   entrypoint get_state() : state = state
 
   payable stateful entrypoint tip(url : string, title : string) : unit =
-    let id = Map.size(state.tips)
-    let tip = { id        = id,
-                sender    = Call.caller,
-                timestamp = Chain.timestamp,
-                repaid    = false,
-                url       = url,
-                amount    = Call.value,
-                title     = title,
-                retip_ids = [] }
-    put(state{ tips[id] = tip, tip_urls[url = []] @ ids = id :: ids })
+    let url_id = get_url_id(url)
+    let (last_claim_id, amount) = state.claim[url_id = (0, 0)]
+    let tip_id = Map.size(state.tips)
+    let tip = { sender    = Call.caller
+              , title     = title
+              , claim_id  = last_claim_id + 1
+              , timestamp = Chain.timestamp
+              , url_id    = url_id
+              , amount    = Call.value
+              , retips    = [] }
+    put(state{ tips[tip_id] = tip,
+               claim[url_id] = (last_claim_id, amount + Call.value) })
     Chain.event(TipReceived(Call.caller, Call.value, url))
 
-  // in testing each retip added +10 gas to the execution cost
-  payable stateful entrypoint retip(id : int) : unit =
-    require(Map.member(id, state.tips), "ID_UNKNOWN")
-    let retip = { sender = Call.caller,
-                  repaid = false,
-                  amount = Call.value }
+  payable stateful entrypoint retip(tip_id : tip_id) : unit =
+    require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
+    let tip = state.tips[tip_id]
+    let (last_claim_id, amount) = state.claim[tip.url_id]
     let retip_id = Map.size(state.retips)
-    let tip_url = state.tips[id].url
-
-    put(state{ retips[retip_id] = retip, retip_urls[tip_url = []] @ retip_ids = retip_id :: retip_ids })
-    put(state{ tips[id].retip_ids @ retip_ids = retip_id :: retip_ids })
-    Chain.event(ReTipReceived(Call.caller, Call.value, tip_url))
+    let retip = { sender   = Call.caller
+                , claim_id = last_claim_id + 1
+                , amount   = Call.value }
+    put(state{ retips[retip_id] = retip,
+               claim[tip.url_id] = (last_claim_id, amount + Call.value) })
+    Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[tip.url_id]))
 
   stateful entrypoint claim(url : string, payout_receiver : address) =
     require_allowed_pay_for_tx_service()
-    let tip_ids = Map.lookup_default(url, state.tip_urls, [])
-    let tip_amount = sum_amout_and_set_repaid(tip_ids, 0)
-
-    let retip_ids = Map.lookup_default(url, state.retip_urls, [])
-    let retip_amount = sum_amout_and_set_repaid_retip(retip_ids, 0)
-
-    let amount = tip_amount + retip_amount
+    require(Map.member(url, state.urls), "URL_NOT_EXISTING")
+    let url_id = state.urls[url]
+    let (last_claim_id, amount) = state.claim[url_id]
     require(amount != 0, "NO_ZERO_AMOUNT_PAYOUT")
     Chain.spend(payout_receiver, amount)
     Chain.event(TipWithdrawn(payout_receiver, amount, url))
+    put(state{ claim[url_id] = (last_claim_id + 1, 0) })
 
-  stateful function
-    sum_amout_and_set_repaid([], n) = n
-    sum_amout_and_set_repaid(tid :: tids, n) =
-      if(state.tips[tid].repaid)
-        0
-      else
-        put(state{ tips[tid].repaid = true })
-        sum_amout_and_set_repaid(tids, n + state.tips[tid].amount)
-  stateful function
-    sum_amout_and_set_repaid_retip([], n) = n
-    sum_amout_and_set_repaid_retip(tid :: tids, n) =
-      if(state.retips[tid].repaid)
-        0
-      else
-        put(state{ retips[tid].repaid = true })
-        sum_amout_and_set_repaid_retip(tids, n + state.retips[tid].amount)
-
-  stateful function migrate_contract(new_contract : address) =
-    // TODO: disallow use of this contract?
-    require_allowed_pay_for_tx_service()
-    Chain.spend(new_contract, Contract.balance)
+  stateful function get_url_id(url) =
+    switch(Map.lookup(url, state.urls))
+      Some(url_id) => url_id
+      None =>
+        let url_id = Map.size(state.urls)
+        put(state{ urls[url] = url_id, url_index[url_id] = url })
+        url_id
 
   function require_allowed_pay_for_tx_service() =
     require(Call.caller == state.pay_for_tx_service, "NOT_ALLOWED")
