@@ -68,22 +68,37 @@ describe('Tipping Payfortx Contract', () => {
         const tip = await contract.methods.tip('domain.test', 'Hello World', {amount : 100});
         assert.equal(tip.result.returnType, 'ok');
 
+        const sameDomainTip = await contract.methods.tip('domain.test', 'Other Test', {amount : 100});
+        assert.equal(sameDomainTip.result.returnType, 'ok');
 
+        const otherDomainTip = await contract.methods.tip('other.test', 'Just another Test', {amount : 100});
+        assert.equal(otherDomainTip.result.returnType, 'ok');
     });
 
     it('Tipping Payfortx Contract: Retip', async () => {
-        const tip = await contract.methods.retip(0, {amount : 100});
-        assert.equal(tip.result.returnType, 'ok');
+        const retip = await contract.methods.retip(0, {amount : 77});
+        assert.equal(retip.result.returnType, 'ok');
 
+        const retipOtherTitle = await contract.methods.retip(1, {amount : 77});
+        assert.equal(retipOtherTitle.result.returnType, 'ok');
     });
 
     it('Tipping Payfortx Contract: Claim', async () => {
         const balanceBefore = await client.balance(wallets[1].publicKey);
+
         const claim = await contract.methods.claim('domain.test', wallets[1].publicKey);
         assert.equal(claim.result.returnType, 'ok');
 
         const balanceAfter = await client.balance(wallets[1].publicKey);
-        assert.equal(parseInt(balanceBefore) + 200, parseInt(balanceAfter));
+        assert.strictEqual(parseInt(balanceBefore) + 100 + 100 + 77 + 77, parseInt(balanceAfter));
+
+        const zeroClaim = await contract.methods.claim('domain.test', wallets[1].publicKey).catch(e => e);
+        assert.include(zeroClaim.decodedError, 'NO_ZERO_AMOUNT_PAYOUT');
+
+        await contract.methods.retip(0, {amount : 53});
+        await contract.methods.claim('domain.test', wallets[1].publicKey);
+        const balanceAfterSecond = await client.balance(wallets[1].publicKey);
+        assert.equal(parseInt(balanceAfter) + 53, parseInt(balanceAfterSecond));
     });
 
 });

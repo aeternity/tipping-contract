@@ -60,10 +60,11 @@ contract TippingPayForTx =
   payable stateful entrypoint tip(url : string, title : string) : unit =
     let url_id = get_url_id(url)
     let (last_claim_id, amount) = state.claim[url_id = (0, 0)]
+    let next_claim_id = last_claim_id + 1
     let tip_id = Map.size(state.tips)
     let tip = { sender    = Call.caller
               , title     = title
-              , claim_id  = last_claim_id + 1
+              , claim_id  = last_claim_id
               , timestamp = Chain.timestamp
               , url_id    = url_id
               , amount    = Call.value
@@ -76,12 +77,13 @@ contract TippingPayForTx =
     require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
     let tip = state.tips[tip_id]
     let (last_claim_id, amount) = state.claim[tip.url_id]
+    let next_claim_id = last_claim_id + 1
     let retip_id = Map.size(state.retips)
     let retip = { sender   = Call.caller
-                , claim_id = last_claim_id + 1
+                , claim_id = next_claim_id
                 , amount   = Call.value }
     put(state{ retips[retip_id] = retip,
-               claim[tip.url_id] = (last_claim_id, amount + Call.value) })
+               claim[tip.url_id] = (next_claim_id, amount + Call.value) })
     Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[tip.url_id]))
 
   stateful entrypoint claim(url : string, payout_receiver : address) =
@@ -89,10 +91,11 @@ contract TippingPayForTx =
     require(Map.member(url, state.urls), "URL_NOT_EXISTING")
     let url_id = state.urls[url]
     let (last_claim_id, amount) = state.claim[url_id]
+    let next_claim_id = last_claim_id + 1
     require(amount != 0, "NO_ZERO_AMOUNT_PAYOUT")
     Chain.spend(payout_receiver, amount)
     Chain.event(TipWithdrawn(payout_receiver, amount, url))
-    put(state{ claim[url_id] = (last_claim_id + 1, 0) })
+    put(state{ claim[url_id] = (next_claim_id, 0) })
 
   stateful function get_url_id(url) =
     switch(Map.lookup(url, state.urls))
