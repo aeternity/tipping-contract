@@ -18,22 +18,6 @@ const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
 const TIPPING_PAY_FOR_TX_CONTRACT = utils.readFileRelative('./contracts/tipping-payfortx.aes', 'utf-8');
-const range = (start, end) => (new Array(end - start + 1)).fill(undefined).map((_, i) => i + start);
-Array.prototype.asyncMap = async function (asyncF) {
-    return this.reduce(async (promiseAcc, cur) => {
-        const acc = await promiseAcc;
-        const res = await asyncF(cur).catch(e => {
-            console.error("asyncMap asyncF", e.message);
-            return null;
-        });
-        if (Array.isArray(res)) {
-            return acc.concat(res);
-        } else {
-            if (res) acc.push(res);
-            return acc;
-        }
-    }, Promise.resolve([]));
-};
 
 const config = {
     url: 'http://localhost:3001/',
@@ -77,9 +61,9 @@ describe('Tipping Payfortx Contract', () => {
         const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
         assert.lengthOf(state.tips, 3);
         assert.lengthOf(state.urls, 2);
-        assert.equal(state.tips[0].total_unclaimed_amount, "100");
-        assert.equal(state.tips[1].total_unclaimed_amount, "100");
-        assert.equal(state.tips[2].total_unclaimed_amount, "100");
+        assert.equal(state.tips.find(t => t.id === 0).total_unclaimed_amount, "100");
+        assert.equal(state.tips.find(t => t.id === 1).total_unclaimed_amount, "100");
+        assert.equal(state.tips.find(t => t.id === 2).total_unclaimed_amount, "100");
     });
 
     it('Tipping Payfortx Contract: Retip', async () => {
@@ -88,6 +72,18 @@ describe('Tipping Payfortx Contract', () => {
 
         const retipOtherTitle = await contract.methods.retip(1, {amount : 77});
         assert.equal(retipOtherTitle.result.returnType, 'ok');
+
+        const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
+        assert.lengthOf(state.tips.find(t => t.id === 0).retips, 1);
+        assert.equal(state.tips.find(t => t.id === 0).retips[0].amount, 77);
+        assert.lengthOf(state.tips.find(t => t.id === 1).retips, 1);
+        assert.equal(state.tips.find(t => t.id === 1).retips[0].amount, 77);
+
+        assert.equal(state.tips.find(t => t.id === 0).total_unclaimed_amount, "177");
+        assert.equal(state.tips.find(t => t.id === 1).total_unclaimed_amount, "177");
+        assert.equal(state.tips.find(t => t.id === 2).total_unclaimed_amount, "100");
+
+        assert.equal(state.urls.find(u => u.url === 'domain.test').unclaimed_amount, 100 + 100 + 77 + 77);
     });
 
     it('Tipping Payfortx Contract: Claim', async () => {
@@ -99,10 +95,20 @@ describe('Tipping Payfortx Contract', () => {
         const balanceAfter = await client.balance(wallets[1].publicKey);
         assert.strictEqual(parseInt(balanceBefore) + 100 + 100 + 77 + 77, parseInt(balanceAfter));
 
+        const state1 = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
+        assert.equal(state1.tips.find(t => t.id === 0).total_unclaimed_amount, "0");
+        assert.equal(state1.tips.find(t => t.id === 1).total_unclaimed_amount, "0");
+        assert.equal(state1.tips.find(t => t.id === 2).total_unclaimed_amount, "100");
+        assert.equal(state1.urls.find(u => u.url === 'domain.test').unclaimed_amount, 0);
+
         const zeroClaim = await contract.methods.claim('domain.test', wallets[1].publicKey).catch(e => e);
         assert.include(zeroClaim.decodedError, 'NO_ZERO_AMOUNT_PAYOUT');
 
         await contract.methods.retip(0, {amount : 53});
+        const state2 = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
+        assert.equal(state2.tips.find(t => t.id === 0).total_unclaimed_amount, "53");
+        assert.equal(state2.urls.find(u => u.url === 'domain.test').unclaimed_amount, 53);
+
         await contract.methods.claim('domain.test', wallets[1].publicKey);
         const balanceAfterSecond = await client.balance(wallets[1].publicKey);
         assert.equal(parseInt(balanceAfter) + 53, parseInt(balanceAfterSecond));
