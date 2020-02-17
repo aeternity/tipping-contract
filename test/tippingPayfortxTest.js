@@ -15,9 +15,9 @@
  *  PERFORMANCE OF THIS SOFTWARE.
  */
 const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
+const TippingContractUtil = require('../util/tippingContractUtil');
 
 const TIPPING_PAY_FOR_TX_CONTRACT = utils.readFileRelative('./contracts/tipping-payfortx.aes', 'utf-8');
-
 const range = (start, end) => (new Array(end - start + 1)).fill(undefined).map((_, i) => i + start);
 Array.prototype.asyncMap = async function (asyncF) {
     return this.reduce(async (promiseAcc, cur) => {
@@ -73,6 +73,13 @@ describe('Tipping Payfortx Contract', () => {
 
         const otherDomainTip = await contract.methods.tip('other.test', 'Just another Test', {amount : 100});
         assert.equal(otherDomainTip.result.returnType, 'ok');
+
+        const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
+        assert.lengthOf(state.tips, 3);
+        assert.lengthOf(state.urls, 2);
+        assert.equal(state.tips[0].total_unclaimed_amount, "100");
+        assert.equal(state.tips[1].total_unclaimed_amount, "100");
+        assert.equal(state.tips[2].total_unclaimed_amount, "100");
     });
 
     it('Tipping Payfortx Contract: Retip', async () => {
