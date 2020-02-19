@@ -102,7 +102,7 @@ contract TippingPayForTx =
     let url_id = state.urls[url]
     [ t | (_, t) <- Map.to_list(state.tips), if (t.url_id == url_id)]
 
-  entrypoint retips_for_tip(tip_id : tip_id) : list(int * retip) =
+  entrypoint retips_for_tip(tip_id : tip_id) : list(retip) =
     require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
     [ t | (_, t) <- Map.to_list(state.retips), if (t.tip_id == tip_id)]
 
