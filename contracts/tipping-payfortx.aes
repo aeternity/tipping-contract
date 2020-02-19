@@ -55,8 +55,6 @@ contract TippingPayForTx =
   entrypoint init(pay_for_tx_service : address) : state =
     { urls = {}, claims = {}, url_index = {}, tips = {}, retips = {}, pay_for_tx_service = pay_for_tx_service }
 
-  entrypoint get_state() : state = state
-
   payable stateful entrypoint tip(url : string, title : string) : unit =
     let url_id = get_url_id(url)
     let (last_claim_gen, amount) = state.claims[url_id = (0, 0)]
@@ -93,6 +91,28 @@ contract TippingPayForTx =
     Chain.spend(payout_receiver, amount)
     Chain.event(TipWithdrawn(payout_receiver, amount, url))
     put(state{ claims[url_id] = (last_claim_gen + 1, 0) })
+
+
+  // GETTER FUNCTIONS
+
+  entrypoint get_state() : state = state
+
+  entrypoint tips_for_url(url : string) : list(tip) =
+    require(Map.member(url, state.urls), "URL_NOT_EXISTING")
+    let url_id = state.urls[url]
+    [ t | (_, t) <- Map.to_list(state.tips), if (t.url_id == url_id)]
+
+  entrypoint retips_for_tip(tip_id : tip_id) : list(int * retip) =
+    require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
+    [ t | (_, t) <- Map.to_list(state.retips), if (t.tip_id == tip_id)]
+
+  entrypoint unclaimed_for_url(url : string) : int =
+    require(Map.member(url, state.urls), "URL_NOT_EXISTING")
+    let url_id = state.urls[url]
+    let (last_claim_gen, amount) = state.claims[url_id]
+    amount
+
+  // INTERNAL FUNCTIONS
 
   stateful function get_url_id(url) =
     switch(Map.lookup(url, state.urls))
