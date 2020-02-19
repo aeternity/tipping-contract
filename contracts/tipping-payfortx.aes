@@ -18,7 +18,7 @@
 // THIS IS NOT SECURITY AUDITED
 // DO NEVER USE THIS WITHOUT SECURITY AUDIT FIRST
 
-@compiler >= 4
+@compiler >= 4.2
 
 contract TippingPayForTx =
 
@@ -48,9 +48,9 @@ contract TippingPayForTx =
                  , pay_for_tx_service : address }
 
   datatype event =
-    TipReceived(address, int, string)
-    | ReTipReceived(address, int, string)
-    | TipWithdrawn(address, int, string)
+    TipReceived(address, int, url)
+    | ReTipReceived(address, int, url)
+    | TipWithdrawn(address, int, url)
 
   entrypoint init(pay_for_tx_service : address) : state =
     { urls = {}, claims = {}, url_index = {}, tips = {}, retips = {}, pay_for_tx_service = pay_for_tx_service }
@@ -109,7 +109,7 @@ contract TippingPayForTx =
   entrypoint unclaimed_for_url(url : string) : int =
     require(Map.member(url, state.urls), "URL_NOT_EXISTING")
     let url_id = state.urls[url]
-    let (last_claim_gen, amount) = state.claims[url_id]
+    let (_, amount) = state.claims[url_id]
     amount
 
   // INTERNAL FUNCTIONS
