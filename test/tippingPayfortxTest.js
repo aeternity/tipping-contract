@@ -51,7 +51,7 @@ describe('Tipping Payfortx Contract', () => {
 
    it('Deploying Tipping Payfortx Contract', async () => {
         contract = await client.getContractInstance(TIPPING_PAY_FOR_TX_CONTRACT);
-        const init = await contract.methods.init(oracleServiceContract.deployInfo.address);
+        const init = await contract.methods.init(oracleServiceContract.deployInfo.address, wallets[0].publicKey);
         assert.equal(init.result.returnType, 'ok');
     });
 
@@ -130,6 +130,21 @@ describe('Tipping Payfortx Contract', () => {
         await contract.methods.claim('domain.test', wallets[1].publicKey);
         const balanceAfterSecond = await client.balance(wallets[1].publicKey);
         assert.equal(parseInt(balanceAfter) + 53, parseInt(balanceAfterSecond));
+    });
+
+    it('Tipping Payfortx Contract: change oracle service', async () => {
+        const state1 = (await contract.methods.get_state()).decodedResult;
+        assert.equal(state1.oracle_service, oracleServiceContract.deployInfo.address)
+
+
+        oracleServiceContract = await client.getContractInstance(MOCK_ORACLE_SERVICE_CONTRACT);
+        await oracleServiceContract.methods.init();
+
+        const claim = await contract.methods.change_oracle_service(oracleServiceContract.deployInfo.address);
+        assert.equal(claim.result.returnType, 'ok');
+
+        const state2 = (await contract.methods.get_state()).decodedResult;
+        assert.equal(state2.oracle_service, oracleServiceContract.deployInfo.address)
     });
 
 });
