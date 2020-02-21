@@ -20,6 +20,14 @@
 
 @compiler >= 4.2
 
+contract OracleService =
+  record success_claim =
+    { success : bool
+    , caller : address
+    , percentage : int }
+
+  stateful entrypoint check_persist_claim : (string) => success_claim
+
 contract TippingPayForTx =
 
   type tip_id    = int
@@ -45,15 +53,15 @@ contract TippingPayForTx =
                  , url_index          : map(url_id, url)
                  , tips               : map(tip_id, tip)
                  , retips             : map(retip_id, retip)
-                 , pay_for_tx_service : address }
+                 , oracle_service     : OracleService }
 
   datatype event =
     TipReceived(address, int, url)
     | ReTipReceived(address, int, url)
     | TipWithdrawn(address, int, url)
 
-  entrypoint init(pay_for_tx_service : address) : state =
-    { urls = {}, claims = {}, url_index = {}, tips = {}, retips = {}, pay_for_tx_service = pay_for_tx_service }
+  entrypoint init(oracle_service : OracleService) : state =
+    { urls = {}, claims = {}, url_index = {}, tips = {}, retips = {}, oracle_service = oracle_service }
 
   payable stateful entrypoint tip(url : string, title : string) : unit =
     let url_id = get_url_id(url)
@@ -83,7 +91,7 @@ contract TippingPayForTx =
     Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[tip.url_id]))
 
   stateful entrypoint claim(url : string, payout_receiver : address) =
-    require_allowed_pay_for_tx_service()
+    require_allowed_oracle_service(url)
     require(Map.member(url, state.urls), "URL_NOT_EXISTING")
     let url_id = state.urls[url]
     let (last_claim_gen, amount) = state.claims[url_id]
@@ -93,6 +101,7 @@ contract TippingPayForTx =
     put(state{ claims[url_id] = (last_claim_gen + 1, 0) })
 
   // TODO add admin migrate functionallity
+  // TODO add update oracle service function
 
   // GETTER FUNCTIONS
 
@@ -123,5 +132,6 @@ contract TippingPayForTx =
         put(state{ urls[url] = url_id, url_index[url_id] = url })
         url_id
 
-  function require_allowed_pay_for_tx_service() =
-    require(Call.caller == state.pay_for_tx_service, "NOT_ALLOWED")
+  function require_allowed_oracle_service(url : string) =
+    let allowed = state.oracle_service.check_persist_claim(url).success
+    require(allowed, "ORACLE_SEVICE_CHECK_CLAIM_FAILED")

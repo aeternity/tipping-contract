@@ -1,0 +1,11 @@
+@compiler >= 4
+
+contract MockOracleService =
+
+  record success_claim =
+    { success : bool
+    , caller : address
+    , percentage : int }
+
+  stateful entrypoint check_persist_claim(url : string) : success_claim =
+    { success = true, caller = Call.origin, percentage = 80 }

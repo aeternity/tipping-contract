@@ -17,7 +17,8 @@
 const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
-const TIPPING_PAY_FOR_TX_CONTRACT = utils.readFileRelative('./contracts/tipping-payfortx.aes', 'utf-8');
+const TIPPING_PAY_FOR_TX_CONTRACT = utils.readFileRelative('./contracts/TippingOracleService.aes', 'utf-8');
+const MOCK_ORACLE_SERVICE_CONTRACT = utils.readFileRelative('./contracts/MockOracleService.aes', 'utf-8');
 
 const config = {
     url: 'http://localhost:3001/',
@@ -26,7 +27,7 @@ const config = {
 };
 
 describe('Tipping Payfortx Contract', () => {
-    let client, contract;
+    let client, contract, oracleServiceContract;
 
     before(async () => {
         client = await Universal({
@@ -42,9 +43,15 @@ describe('Tipping Payfortx Contract', () => {
         });
     });
 
-    it('Deploying Tipping Payfortx Contract', async () => {
+    it('Deploying Tipping MockOracleService Contract', async () => {
+        oracleServiceContract = await client.getContractInstance(MOCK_ORACLE_SERVICE_CONTRACT);
+        const init = await oracleServiceContract.methods.init();
+        assert.equal(init.result.returnType, 'ok');
+    });
+
+   it('Deploying Tipping Payfortx Contract', async () => {
         contract = await client.getContractInstance(TIPPING_PAY_FOR_TX_CONTRACT);
-        const init = await contract.methods.init(wallets[0].publicKey);
+        const init = await contract.methods.init(oracleServiceContract.deployInfo.address);
         assert.equal(init.result.returnType, 'ok');
     });
 
