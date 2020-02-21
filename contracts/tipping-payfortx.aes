@@ -92,6 +92,7 @@ contract TippingPayForTx =
     Chain.event(TipWithdrawn(payout_receiver, amount, url))
     put(state{ claims[url_id] = (last_claim_gen + 1, 0) })
 
+  // TODO add admin migrate functionallity
 
   // GETTER FUNCTIONS
 
