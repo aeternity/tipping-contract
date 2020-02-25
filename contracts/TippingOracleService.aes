@@ -26,7 +26,7 @@ contract OracleService =
     , caller : address
     , percentage : int }
 
-  stateful entrypoint check_persist_claim : (string) => success_claim
+  stateful entrypoint check_persist_claim : (string, address) => success_claim
 
 contract TippingPayForTx =
 
@@ -101,14 +101,14 @@ contract TippingPayForTx =
                claims[tip.url_id] = (last_claim_gen, amount + Call.value) })
     Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[tip.url_id]))
 
-  stateful entrypoint claim(url : string, payout_receiver : address) =
-    require_allowed_oracle_service(url)
+  stateful entrypoint claim(url : string, account : address) =
+    require_allowed_oracle_service(url, account)
     require(Map.member(url, state.urls), "URL_NOT_EXISTING")
     let url_id = state.urls[url]
     let (last_claim_gen, amount) = state.claims[url_id]
     require(amount != 0, "NO_ZERO_AMOUNT_PAYOUT")
-    Chain.spend(payout_receiver, amount)
-    Chain.event(TipWithdrawn(payout_receiver, amount, url))
+    Chain.spend(account, amount)
+    Chain.event(TipWithdrawn(account, amount, url))
     put(state{ claims[url_id] = (last_claim_gen + 1, 0) })
 
   // TODO add admin migrate functionallity
@@ -145,6 +145,6 @@ contract TippingPayForTx =
         put(state{ urls[url] = url_id, url_index[url_id] = url })
         url_id
 
-  function require_allowed_oracle_service(url : string) =
-    let allowed = state.oracle_service.check_persist_claim(url).success
+  function require_allowed_oracle_service(url : string, account : address) =
+    let allowed = state.oracle_service.check_persist_claim(url, account).success
     require(allowed, "ORACLE_SEVICE_CHECK_CLAIM_FAILED")
