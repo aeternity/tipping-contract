@@ -111,7 +111,9 @@ contract TippingPayForTx =
     Chain.event(TipWithdrawn(account, amount, url))
     put(state{ claims[url_id] = (last_claim_gen + 1, 0) })
 
-  // TODO add admin migrate functionallity
+  stateful entrypoint migrate_balance(new_contract : address) =
+    require_owner()
+    Chain.spend(new_contract, Contract.balance)
 
   // GETTER FUNCTIONS
 
