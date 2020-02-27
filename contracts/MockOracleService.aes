@@ -7,5 +7,5 @@ contract MockOracleService =
     , account : address
     , percentage : int }
 
-  stateful entrypoint check_persist_claim(url : string, account : address) : success_claim =
+  stateful entrypoint check_persist_claim(url : string, account : address, recheck : bool) : success_claim =
     { success = true, account = account, percentage = 80 }

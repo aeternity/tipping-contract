@@ -106,7 +106,7 @@ describe('Tipping Contract', () => {
     it('Tipping Contract: Claim', async () => {
         const balanceBefore = await client.balance(wallets[1].publicKey);
 
-        const claim = await contract.methods.claim('domain.test', wallets[1].publicKey);
+        const claim = await contract.methods.claim('domain.test', wallets[1].publicKey, false);
         assert.equal(claim.result.returnType, 'ok');
 
         const balanceAfter = await client.balance(wallets[1].publicKey);
@@ -118,7 +118,8 @@ describe('Tipping Contract', () => {
         assert.equal(state1.tips.find(t => t.id === 2).total_unclaimed_amount, "100");
         assert.equal(state1.urls.find(u => u.url === 'domain.test').unclaimed_amount, 0);
 
-        const zeroClaim = await contract.methods.claim('domain.test', wallets[1].publicKey).catch(e => e);
+        const zeroClaim = await contract.methods.claim('domain.test', wallets[1].publicKey, false).catch(e => e);
+        console.log(zeroClaim);
         assert.include(zeroClaim.decodedError, 'NO_ZERO_AMOUNT_PAYOUT');
 
         await contract.methods.retip(0, {amount : 53});
@@ -127,7 +128,7 @@ describe('Tipping Contract', () => {
         assert.equal(state2.urls.find(u => u.url === 'domain.test').unclaimed_amount, 53);
         assert.equal((await contract.methods.unclaimed_for_url('domain.test')).decodedResult, 53);
 
-        await contract.methods.claim('domain.test', wallets[1].publicKey);
+        await contract.methods.claim('domain.test', wallets[1].publicKey, false);
         const balanceAfterSecond = await client.balance(wallets[1].publicKey);
         assert.equal(parseInt(balanceAfter) + 53, parseInt(balanceAfterSecond));
     });

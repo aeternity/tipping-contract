@@ -20,13 +20,14 @@
 
 @compiler >= 4.2
 
+// TODO add interface definition file to be used by backend, aggregator and wallet
 contract OracleService =
   record success_claim =
     { success : bool
     , caller : address
     , percentage : int }
 
-  stateful entrypoint check_persist_claim : (string, address) => success_claim
+  stateful entrypoint check_persist_claim : (string, address, bool) => success_claim
 
 contract TippingPayForTx =
 
@@ -101,8 +102,9 @@ contract TippingPayForTx =
                claims[tip.url_id] = (last_claim_gen, amount + Call.value) })
     Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[tip.url_id]))
 
-  stateful entrypoint claim(url : string, account : address) =
-    require_allowed_oracle_service(url, account)
+  //TODO call oracle service pre_claim function
+  stateful entrypoint claim(url : string, account : address, recheck : bool) =
+    require_allowed_oracle_service(url, account, recheck)
     require(Map.member(url, state.urls), "URL_NOT_EXISTING")
     let url_id = state.urls[url]
     let (last_claim_gen, amount) = state.claims[url_id]
@@ -147,6 +149,6 @@ contract TippingPayForTx =
         put(state{ urls[url] = url_id, url_index[url_id] = url })
         url_id
 
-  function require_allowed_oracle_service(url : string, account : address) =
-    let allowed = state.oracle_service.check_persist_claim(url, account).success
+  function require_allowed_oracle_service(url : string, account : address, recheck : bool) =
+    let allowed = state.oracle_service.check_persist_claim(url, account, recheck).success
     require(allowed, "ORACLE_SEVICE_CHECK_CLAIM_FAILED")
