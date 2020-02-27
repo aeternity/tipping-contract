@@ -20,7 +20,6 @@
 
 @compiler >= 4.2
 
-// TODO add interface definition file to be used by backend, aggregator and wallet
 contract OracleService =
   record success_claim =
     { success : bool

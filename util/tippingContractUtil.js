@@ -2,7 +2,6 @@ const BigNumber = require('bignumber.js');
 
 const tippingContractUtil = {};
 
-// TODO add sample use in readme
 tippingContractUtil.getTipsRetips = (state) => {
   const findUrl = (urlId) => state.urls.find(([_, id]) => urlId === id)[0];
 
