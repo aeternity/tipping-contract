@@ -7,7 +7,7 @@ const TIPPING_INTERFACE = fs.readFileSync('./contracts/TippingInterface.aes', 'u
 const TippingContractUtil = require('./util/tippingContractUtil');
 
 ...
-const interface = await client.getContractInstance(TIPPING_INTERFACE, {contractAddress: contract.deployInfo.address});
+const interface = await client.getContractInstance(TIPPING_INTERFACE, {contractAddress: "ct_..."});
 const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
 
 /*
@@ -24,7 +24,7 @@ const state = TippingContractUtil.getTipsRetips((await contract.methods.get_stat
    {
      amount: 100,
      claim_gen: 1,
-     sender: 'ak_fUq2NesPXcYZ1CcqBcGC3StpdnQw3iVxMA3YSeCNAwfN4myQk',
+     sender: 'ak_...',
      timestamp: 1582834604691,
      title: 'Hello World',
      url_id: 0,
