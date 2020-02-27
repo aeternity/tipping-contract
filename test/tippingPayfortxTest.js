@@ -17,7 +17,8 @@
 const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
-const TIPPING_PAY_FOR_TX_CONTRACT = utils.readFileRelative('./contracts/TippingOracleService.aes', 'utf-8');
+const TIPPING_CONTRACT = utils.readFileRelative('./contracts/Tipping.aes', 'utf-8');
+const TIPPING_INTERFACE = utils.readFileRelative('./contracts/TippingInterface.aes', 'utf-8');
 const MOCK_ORACLE_SERVICE_CONTRACT = utils.readFileRelative('./contracts/MockOracleService.aes', 'utf-8');
 
 const config = {
@@ -50,7 +51,7 @@ describe('Tipping Contract', () => {
     });
 
    it('Deploying Tipping Contract', async () => {
-        contract = await client.getContractInstance(TIPPING_PAY_FOR_TX_CONTRACT);
+        contract = await client.getContractInstance(TIPPING_CONTRACT);
         const init = await contract.methods.init(oracleServiceContract.deployInfo.address, wallets[0].publicKey);
         assert.equal(init.result.returnType, 'ok');
     });
@@ -152,6 +153,14 @@ describe('Tipping Contract', () => {
 
         assert.equal(await client.balance(contract.deployInfo.address), 0);
 
+    });
+
+    it('Deploying Tipping Contract', async () => {
+        const interface = await client.getContractInstance(TIPPING_INTERFACE, {contractAddress: contract.deployInfo.address});
+        const state = (await interface.methods.get_state()).decodedResult;
+       console.log(TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult));
+
+        assert.equal(state.owner, wallets[0].publicKey);
     });
 
 });
