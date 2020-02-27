@@ -9,3 +9,6 @@ contract MockOracleService =
 
   stateful entrypoint check_persist_claim(url : string, account : address, recheck : bool) : success_claim =
     { success = true, account = account, percentage = 80 }
+
+  payable stateful entrypoint query_oracle(url : string, expected_account : address) =
+     ()

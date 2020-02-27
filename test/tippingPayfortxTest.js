@@ -119,7 +119,6 @@ describe('Tipping Contract', () => {
         assert.equal(state1.urls.find(u => u.url === 'domain.test').unclaimed_amount, 0);
 
         const zeroClaim = await contract.methods.claim('domain.test', wallets[1].publicKey, false).catch(e => e);
-        console.log(zeroClaim);
         assert.include(zeroClaim.decodedError, 'NO_ZERO_AMOUNT_PAYOUT');
 
         await contract.methods.retip(0, {amount : 53});

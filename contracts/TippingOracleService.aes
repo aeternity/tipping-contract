@@ -28,6 +28,7 @@ contract OracleService =
     , percentage : int }
 
   stateful entrypoint check_persist_claim : (string, address, bool) => success_claim
+  payable stateful entrypoint query_oracle : (string, address) => unit
 
 contract TippingPayForTx =
 
@@ -102,7 +103,9 @@ contract TippingPayForTx =
                claims[tip.url_id] = (last_claim_gen, amount + Call.value) })
     Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[tip.url_id]))
 
-  //TODO call oracle service pre_claim function
+  payable stateful entrypoint pre_claim(url : string, expected_account : address) =
+    state.oracle_service.query_oracle(value = Call.value, url, expected_account)
+
   stateful entrypoint claim(url : string, account : address, recheck : bool) =
     require_allowed_oracle_service(url, account, recheck)
     require(Map.member(url, state.urls), "URL_NOT_EXISTING")
