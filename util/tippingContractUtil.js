@@ -59,4 +59,12 @@ tippingContractUtil.getTipsRetips = (state) => {
   };
 };
 
+tippingContractUtil.claimableAmount = (state, url) => {
+  const urlIdFind = state.decodedResult.urls.find(([u, _]) => url === u);
+  if(!urlIdFind.length) throw new Error("Url not found");
+  const urlId = urlIdFind[1];
+  const claimFind = state.decodedResult.claims.find(([id, _ ]) => urlId === id);
+  return claimFind.length ? claimFind[1][1] : 0;
+};
+
 module.exports = tippingContractUtil;
