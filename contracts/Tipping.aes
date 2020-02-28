@@ -138,6 +138,9 @@ contract Tipping =
     let (_, amount) = state.claims[url_id]
     amount
 
+  entrypoint check_claim(url : string, expected_account : address) =
+    state.oracle_service.check_persist_claim(url, expected_account, false)
+
   // INTERNAL FUNCTIONS
 
   function require_owner() =

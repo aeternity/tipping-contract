@@ -107,6 +107,11 @@ describe('Tipping Contract', () => {
     it('Tipping Contract: Claim', async () => {
         const balanceBefore = await client.balance(wallets[1].publicKey);
 
+        const checkClaim = await contract.methods.check_claim('domain.test', wallets[1].publicKey);
+        assert.equal(checkClaim.result.returnType, 'ok');
+        assert.equal(checkClaim.decodedResult.success, true);
+        assert.equal(checkClaim.decodedResult.percentage, 80);
+
         const claim = await contract.methods.claim('domain.test', wallets[1].publicKey, false);
         assert.equal(claim.result.returnType, 'ok');
 
@@ -158,8 +163,6 @@ describe('Tipping Contract', () => {
     it('Deploying Tipping Contract', async () => {
         const interface = await client.getContractInstance(TIPPING_INTERFACE, {contractAddress: contract.deployInfo.address});
         const state = (await interface.methods.get_state()).decodedResult;
-       console.log(TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult));
-
         assert.equal(state.owner, wallets[0].publicKey);
     });
 
