@@ -166,4 +166,46 @@ describe('Tipping Contract', () => {
         assert.equal(state.owner, wallets[0].publicKey);
     });
 
+    it('Tipping Contract: Reclaim Tip', async () => {
+        await contract.methods.tip('retip.test', '1', {amount : 111});
+
+        const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
+        const tip = state.tips.find(tip => tip.url === 'retip.test' && tip.title === '1');
+        assert.equal(state.urls.find(url => url.url === 'retip.test').unclaimed_amount, 111);
+
+        const reclaim = await contract.methods.reclaim_tip(tip.id);
+        assert.equal(reclaim.result.returnType, 'ok');
+
+        const stateAfter = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
+        assert.equal(stateAfter.urls.find(url => url.url === 'retip.test').unclaimed_amount, 0);
+    });
+
+    it('Tipping Contract: Reclaim Tip Claimed', async () => {
+        const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
+        const tip = state.tips.find(tip => tip.url === 'retip.test' && tip.title === '1');
+
+        const reclaimReclaimed = await contract.methods.reclaim_tip(tip.id).catch(e => e);
+        assert.include(reclaimReclaimed.decodedError, 'TIP_ALREADY_RECLAIMED');
+    });
+
+    it('Tipping Contract: Reclaim Tip Claimed', async () => {
+        await contract.methods.tip('retip.test', '2', {amount : 222});
+
+        const checkClaim = await contract.methods.check_claim('retip.test', wallets[1].publicKey);
+        assert.equal(checkClaim.result.returnType, 'ok');
+        assert.equal(checkClaim.decodedResult.success, true);
+        assert.equal(checkClaim.decodedResult.percentage, 80);
+
+        const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
+        const tip = state.tips.find(tip => tip.url === 'retip.test' && tip.title === '2');
+
+        assert.equal(state.urls.find(url => url.url === 'retip.test').unclaimed_amount, 222);
+
+        const claim = await contract.methods.claim('retip.test', wallets[1].publicKey, false);
+        assert.equal(claim.result.returnType, 'ok');
+
+        const reclaimClaimed = await contract.methods.reclaim_tip(tip.id).catch(e => e);
+        assert.include(reclaimClaimed.decodedError, 'TIP_ALREADY_CLAIMED');
+    });
+
 });
