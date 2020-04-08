@@ -42,12 +42,14 @@ contract Tipping =
                , claim_gen : claim_gen
                , timestamp : int
                , url_id    : url_id
-               , amount    : int }
+               , amount    : int
+               , reclaimed : bool }
 
   record retip = { sender    : address
                  , amount    : int
                  , claim_gen : claim_gen
-                 , tip_id    : tip_id }
+                 , tip_id    : tip_id
+                 , reclaimed : bool }
 
   record state = { urls               : map(url, url_id)
                  , claims             : map(url_id, claim_gen * int)
@@ -84,23 +86,35 @@ contract Tipping =
               , claim_gen = last_claim_gen + 1
               , timestamp = Chain.timestamp
               , url_id    = url_id
-              , amount    = Call.value }
+              , amount    = Call.value
+              , reclaimed = false }
     put(state{ tips[tip_id] = tip,
                claims[url_id] = (last_claim_gen, amount + Call.value) })
     Chain.event(TipReceived(Call.caller, Call.value, url))
 
+  stateful entrypoint reclaim_tip(tip_id : tip_id) : unit =
+    let tip = get_tip_by_id(tip_id)
+    // TODO implementation
+    require(tip.sender == Call.caller, "CALLER_NOT_TIP_SENDER")
+
   payable stateful entrypoint retip(tip_id : tip_id) : unit =
-    require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
-    let tip = state.tips[tip_id]
+    let tip = get_tip_by_id(tip_id)
     let (last_claim_gen, amount) = state.claims[tip.url_id]
     let retip_id = Map.size(state.retips)
     let retip = { sender    = Call.caller
                 , claim_gen = last_claim_gen + 1
                 , amount    = Call.value
-                , tip_id    = tip_id }
+                , tip_id    = tip_id
+                , reclaimed = false }
     put(state{ retips[retip_id] = retip,
                claims[tip.url_id] = (last_claim_gen, amount + Call.value) })
     Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[tip.url_id]))
+
+  stateful entrypoint reclaim_retip(retip_id : retip_id) : unit =
+    require(Map.member(retip_id, state.retips), "RETIP_NOT_EXISTING")
+    let retip = state.retips[retip_id]
+    // TODO implementation
+    require(retip.sender == Call.caller, "CALLER_NOT_TIP_SENDER")
 
   payable stateful entrypoint pre_claim(url : string, expected_account : address) =
     state.oracle_service.query_oracle(value = Call.value, url, expected_account)
@@ -145,6 +159,10 @@ contract Tipping =
 
   function require_owner() =
     require(Call.caller == state.owner, "OWNER_REQUIRED")
+
+  function get_tip_by_id(tip_id) =
+    require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
+    state.tips[tip_id]
 
   stateful function get_url_id(url) =
     switch(Map.lookup(url, state.urls))
