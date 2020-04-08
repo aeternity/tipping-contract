@@ -63,6 +63,7 @@ contract Tipping =
     TipReceived(address, int, url)
     | ReTipReceived(address, int, url)
     | TipWithdrawn(address, int, url)
+    | TipReclaimed(address, int, url)
 
   entrypoint init(oracle_service : OracleService, owner : address) : state =
     { urls = {},
@@ -94,8 +95,15 @@ contract Tipping =
 
   stateful entrypoint reclaim_tip(tip_id : tip_id) : unit =
     let tip = get_tip_by_id(tip_id)
-    // TODO implementation
     require(tip.sender == Call.caller, "CALLER_NOT_TIP_SENDER")
+    require(!tip.reclaimed, "TIP_ALREADY_RECLAIMED")
+    let (last_claim_gen, amount) = state.claims[tip.url_id]
+    require(tip.claim_gen > last_claim_gen, "TIP_ALREADY_CLAIMED")
+    let updated_tip = tip{ reclaimed = true }
+    put(state{ tips[tip_id] = updated_tip,
+               claims[tip.url_id] = (last_claim_gen, amount - tip.amount) })
+    Chain.spend(tip.sender, tip.amount)
+    Chain.event(TipReclaimed(Call.caller, tip.amount, state.url_index[tip.url_id]))
 
   payable stateful entrypoint retip(tip_id : tip_id) : unit =
     let tip = get_tip_by_id(tip_id)
