@@ -167,17 +167,23 @@ describe('Tipping Contract', () => {
   });
 
   it('Tipping Contract: Reclaim Tip', async () => {
-    await contract.methods.tip('retip.test', '1', {amount: 111});
+    await contract.methods.tip('retip.test', '1', {amount: 1});
+    await contract.methods.tip('retip.test', '2', {amount: 2});
 
     const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
     const tip = state.tips.find(tip => tip.url === 'retip.test' && tip.title === '1');
-    assert.equal(state.urls.find(url => url.url === 'retip.test').unclaimed_amount, 111);
+    assert.equal(state.urls.find(url => url.url === 'retip.test').unclaimed_amount, 3);
 
+    await contract.methods.retip(tip.id, {amount: 4});
+
+    const balanceBefore = await client.balance(contract.deployInfo.address.replace('ct_', 'ak_'));
     const reclaim = await contract.methods.reclaim_tip(tip.id);
     assert.equal(reclaim.result.returnType, 'ok');
+    const balanceAfter = await client.balance(contract.deployInfo.address.replace('ct_', 'ak_'));
+    assert.equal(parseInt(balanceAfter) + 1, parseInt(balanceBefore));
 
     const stateAfter = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
-    assert.equal(stateAfter.urls.find(url => url.url === 'retip.test').unclaimed_amount, 0);
+    assert.equal(stateAfter.urls.find(url => url.url === 'retip.test').unclaimed_amount, 6);
   });
 
   it('Tipping Contract: Reclaim Tip Claimed', async () => {
@@ -189,7 +195,7 @@ describe('Tipping Contract', () => {
   });
 
   it('Tipping Contract: Reclaim Tip Claimed', async () => {
-    await contract.methods.tip('retip.test', '2', {amount: 222});
+    await contract.methods.tip('retip.test', '3', {amount: 8});
 
     const checkClaim = await contract.methods.check_claim('retip.test', wallets[1].publicKey);
     assert.equal(checkClaim.result.returnType, 'ok');
@@ -197,12 +203,15 @@ describe('Tipping Contract', () => {
     assert.equal(checkClaim.decodedResult.percentage, 80);
 
     const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
-    const tip = state.tips.find(tip => tip.url === 'retip.test' && tip.title === '2');
+    const tip = state.tips.find(tip => tip.url === 'retip.test' && tip.title === '3');
 
-    assert.equal(state.urls.find(url => url.url === 'retip.test').unclaimed_amount, 222);
+    assert.equal(state.urls.find(url => url.url === 'retip.test').unclaimed_amount, 8 + 2 + 4);
 
     const claim = await contract.methods.claim('retip.test', wallets[1].publicKey, false);
     assert.equal(claim.result.returnType, 'ok');
+
+    const stateAfter = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
+    assert.equal(stateAfter.urls.find(url => url.url === 'retip.test').unclaimed_amount, 0);
 
     const reclaimClaimed = await contract.methods.reclaim_tip(tip.id).catch(e => e);
     assert.include(reclaimClaimed.decodedError, 'TIP_ALREADY_CLAIMED');
