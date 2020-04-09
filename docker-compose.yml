@@ -1,7 +1,7 @@
 version: '3'
 services:
   node1:
-    image: aeternity/aeternity:v5.4.1
+    image: aeternity/aeternity:v5.5.1
     hostname: node1
     environment:
       AETERNITY_CONFIG: /home/aeternity/aeternity.yaml
@@ -9,7 +9,7 @@ services:
       - ./docker/aeternity_node1_mean15.yaml:/home/aeternity/aeternity.yaml
 
   proxy:
-    image: 'nginx:1.13.8'
+    image: 'library/nginx:1.17.9'
     hostname: proxy
     ports:
       - '3001:3001'
@@ -18,4 +18,3 @@ services:
 
 volumes:
   node1_db:
-
