@@ -28,12 +28,14 @@ tippingContractUtil.getTipsRetips = (state) => {
     data.retips = findRetips(id, data.url_id);
     data.claim = findClaimGen(data.claim_gen, data.url_id);
 
-    data.total_amount = new BigNumber(data.amount).plus(data.retips.reduce((acc, retip) => {
-      return acc.plus(retip.amount)
-    }, new BigNumber('0'))).toFixed();
+    data.total_retip_amount = data.retips.reduce((acc, retip) => {
+      return acc.plus(retip.reclaimed ? 0 : retip.amount)
+    }, new BigNumber('0')).toFixed();
 
-    data.total_unclaimed_amount = new BigNumber(data.claim.unclaimed ? data.amount : 0).plus(data.retips.reduce((acc, retip) => {
-      return acc.plus(retip.claim.unclaimed ? retip.amount : 0)
+    data.total_amount = new BigNumber(data.reclaimed ? 0 : data.amount).plus(data.total_retip_amount).toFixed();
+
+    data.total_unclaimed_amount = new BigNumber(data.claim.unclaimed && !data.reclaimed ? data.amount : 0).plus(data.retips.reduce((acc, retip) => {
+      return acc.plus(retip.claim.unclaimed  && !retip.reclaimed ? retip.amount : 0)
     }, new BigNumber('0'))).toFixed();
 
     return data;
@@ -52,19 +54,10 @@ tippingContractUtil.getTipsRetips = (state) => {
     };
   });
 
-
   return {
     urls: urls,
     tips: tips
   };
-};
-
-tippingContractUtil.claimableAmount = (state, url) => {
-  const urlIdFind = state.decodedResult.urls.find(([u, _]) => url === u);
-  if(!urlIdFind || !urlIdFind.length) throw new Error("Url not found");
-  const urlId = urlIdFind[1];
-  const claimFind = state.decodedResult.claims.find(([id, _ ]) => urlId === id);
-  return claimFind.length ? claimFind[1][1] : 0;
 };
 
 module.exports = tippingContractUtil;

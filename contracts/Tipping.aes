@@ -64,6 +64,7 @@ contract Tipping =
     | ReTipReceived(address, int, url)
     | TipWithdrawn(address, int, url)
     | TipReclaimed(address, int, url)
+    | ReTipReclaimed(address, int, url)
 
   entrypoint init(oracle_service : OracleService, owner : address) : state =
     { urls = {},
@@ -99,8 +100,7 @@ contract Tipping =
     require(!tip.reclaimed, "TIP_ALREADY_RECLAIMED")
     let (last_claim_gen, amount) = state.claims[tip.url_id]
     require(tip.claim_gen > last_claim_gen, "TIP_ALREADY_CLAIMED")
-    let updated_tip = tip{ reclaimed = true }
-    put(state{ tips[tip_id] = updated_tip,
+    put(state{ tips[tip_id] = tip{ reclaimed = true },
                claims[tip.url_id] = (last_claim_gen, amount - tip.amount) })
     Chain.spend(tip.sender, tip.amount)
     Chain.event(TipReclaimed(Call.caller, tip.amount, state.url_index[tip.url_id]))
@@ -121,8 +121,14 @@ contract Tipping =
   stateful entrypoint reclaim_retip(retip_id : retip_id) : unit =
     require(Map.member(retip_id, state.retips), "RETIP_NOT_EXISTING")
     let retip = state.retips[retip_id]
-    // TODO implementation
     require(retip.sender == Call.caller, "CALLER_NOT_TIP_SENDER")
+    let tip = get_tip_by_id(retip.tip_id)
+    let (last_claim_gen, amount) = state.claims[tip.url_id]
+    require(retip.claim_gen > last_claim_gen, "RETIP_ALREADY_CLAIMED")
+    put(state{ retips[retip_id] = retip{ reclaimed = true },
+               claims[tip.url_id] = (last_claim_gen, amount - retip.amount) })
+    Chain.spend(retip.sender, retip.amount)
+    Chain.event(ReTipReclaimed(Call.caller, retip.amount, state.url_index[tip.url_id]))
 
   payable stateful entrypoint pre_claim(url : string, expected_account : address) =
     state.oracle_service.query_oracle(value = Call.value, url, expected_account)
