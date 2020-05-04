@@ -23,7 +23,7 @@
 contract OracleService =
   record success_claim =
     { success : bool
-    , caller : address
+    , account : address
     , percentage : int }
 
   stateful entrypoint check_persist_claim : (string, address, bool) => success_claim
@@ -155,5 +155,6 @@ contract Tipping =
         url_id
 
   function require_allowed_oracle_service(url : string, account : address, recheck : bool) =
-    let allowed = state.oracle_service.check_persist_claim(url, account, recheck).success
-    require(allowed, "ORACLE_SEVICE_CHECK_CLAIM_FAILED")
+    let checked_claim = state.oracle_service.check_persist_claim(url, account, recheck)
+    require(checked_claim.success, "ORACLE_SEVICE_CHECK_CLAIM_NOT_SUCCESSFULL")
+    require(checked_claim.account == account, "ORACLE_SEVICE_CHECK_CLAIM_ADDRESS_NOT_MATCHING")
