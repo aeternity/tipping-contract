@@ -59,12 +59,15 @@ describe('Tipping Contract', () => {
     it('Tipping Contract: Tip', async () => {
         const tip = await contract.methods.tip('domain.test', 'Hello World', {amount : 100});
         assert.equal(tip.result.returnType, 'ok');
+        assert.equal(tip.decodedResult, 0);
 
         const sameDomainTip = await contract.methods.tip('domain.test', 'Other Test', {amount : 100});
         assert.equal(sameDomainTip.result.returnType, 'ok');
+        assert.equal(sameDomainTip.decodedResult, 1);
 
         const otherDomainTip = await contract.methods.tip('other.test', 'Just another Test', {amount : 100});
         assert.equal(otherDomainTip.result.returnType, 'ok');
+        assert.equal(otherDomainTip.decodedResult, 2);
 
         const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
         assert.lengthOf(state.tips, 3);
@@ -82,9 +85,11 @@ describe('Tipping Contract', () => {
     it('Tipping Contract: Retip', async () => {
         const retip = await contract.methods.retip(0, {amount : 77});
         assert.equal(retip.result.returnType, 'ok');
+        assert.equal(retip.decodedResult, 0);
 
         const retipOtherTitle = await contract.methods.retip(1, {amount : 77});
         assert.equal(retipOtherTitle.result.returnType, 'ok');
+        assert.equal(retipOtherTitle.decodedResult, 1);
 
         const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
         assert.lengthOf(state.tips.find(t => t.id === 0).retips, 1);
