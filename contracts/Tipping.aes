@@ -58,8 +58,8 @@ contract Tipping =
                  , oracle_service     : OracleService }
 
   datatype event =
-    TipReceived(address, int, url)
-    | ReTipReceived(address, int, url)
+    TipReceived(address, int, url, int)
+    | ReTipReceived(address, int, url, int)
     | TipWithdrawn(address, int, url)
 
   entrypoint init(oracle_service : OracleService, owner : address) : state =
@@ -75,7 +75,7 @@ contract Tipping =
     require_owner()
     put(state{ oracle_service = oracle_service })
 
-  payable stateful entrypoint tip(url : string, title : string) : unit =
+  payable stateful entrypoint tip(url : string, title : string) : int =
     let url_id = get_url_id(url)
     let (last_claim_gen, amount) = state.claims[url_id = (0, 0)]
     let tip_id = Map.size(state.tips)
@@ -87,9 +87,10 @@ contract Tipping =
               , amount    = Call.value }
     put(state{ tips[tip_id] = tip,
                claims[url_id] = (last_claim_gen, amount + Call.value) })
-    Chain.event(TipReceived(Call.caller, Call.value, url))
+    Chain.event(TipReceived(Call.caller, Call.value, url, tip_id))
+    tip_id
 
-  payable stateful entrypoint retip(tip_id : tip_id) : unit =
+  payable stateful entrypoint retip(tip_id : tip_id) : int =
     require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
     let tip = state.tips[tip_id]
     let (last_claim_gen, amount) = state.claims[tip.url_id]
@@ -100,7 +101,8 @@ contract Tipping =
                 , tip_id    = tip_id }
     put(state{ retips[retip_id] = retip,
                claims[tip.url_id] = (last_claim_gen, amount + Call.value) })
-    Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[tip.url_id]))
+    Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[tip.url_id], retip_id))
+    retip_id
 
   payable stateful entrypoint pre_claim(url : string, expected_account : address) =
     state.oracle_service.query_oracle(value = Call.value, url, expected_account)
