@@ -75,8 +75,8 @@ describe('Tipping Contract', () => {
         assert.equal(state.tips.find(t => t.id === 0).total_unclaimed_amount, "100");
         assert.equal(state.tips.find(t => t.id === 1).total_unclaimed_amount, "100");
         assert.equal(state.tips.find(t => t.id === 2).total_unclaimed_amount, "100");
-        assert.equal((await contract.methods.unclaimed_for_url('domain.test')).decodedResult, 100 + 100);
-        assert.equal((await contract.methods.unclaimed_for_url('other.test')).decodedResult, 100);
+        assert.equal((await contract.methods.unclaimed_for_url('domain.test')).decodedResult[0], 100 + 100);
+        assert.equal((await contract.methods.unclaimed_for_url('other.test')).decodedResult[0], 100);
 
         const tips = (await contract.methods.tips_for_url('domain.test')).decodedResult;
         assert.lengthOf(tips, 2);
@@ -102,7 +102,7 @@ describe('Tipping Contract', () => {
         assert.equal(state.tips.find(t => t.id === 2).total_unclaimed_amount, "100");
 
         assert.equal(state.urls.find(u => u.url === 'domain.test').unclaimed_amount, 100 + 100 + 77 + 77);
-        assert.equal((await contract.methods.unclaimed_for_url('domain.test')).decodedResult, 100 + 100 + 77 + 77);
+        assert.equal((await contract.methods.unclaimed_for_url('domain.test')).decodedResult[0], 100 + 100 + 77 + 77);
 
         assert.lengthOf((await contract.methods.retips_for_tip(0)).decodedResult, 1);
         assert.lengthOf((await contract.methods.retips_for_tip(1)).decodedResult, 1);
@@ -136,7 +136,7 @@ describe('Tipping Contract', () => {
         const state2 = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
         assert.equal(state2.tips.find(t => t.id === 0).total_unclaimed_amount, "53");
         assert.equal(state2.urls.find(u => u.url === 'domain.test').unclaimed_amount, 53);
-        assert.equal((await contract.methods.unclaimed_for_url('domain.test')).decodedResult, 53);
+        assert.equal((await contract.methods.unclaimed_for_url('domain.test')).decodedResult[0], 53);
 
         await contract.methods.claim('domain.test', wallets[1].publicKey, false);
         const balanceAfterSecond = await client.balance(wallets[1].publicKey);
@@ -165,7 +165,7 @@ describe('Tipping Contract', () => {
 
     });
 
-    it('Deploying Tipping Contract', async () => {
+    it('Tipping Contract Interface', async () => {
         const interface = await client.getContractInstance(TIPPING_INTERFACE, {contractAddress: contract.deployInfo.address});
         const state = (await interface.methods.get_state()).decodedResult;
         assert.equal(state.owner, wallets[0].publicKey);

@@ -18,10 +18,11 @@
 // THIS IS NOT SECURITY AUDITED
 // DO NEVER USE THIS WITHOUT SECURITY AUDIT FIRST
 
+@compiler >= 4.2
+
 contract TokenContract =
   stateful entrypoint transfer_allowance : (address, address, int) => unit
-
-@compiler >= 4.2
+  stateful entrypoint transfer : (address, int) => unit
 
 contract OracleService =
   record success_claim =
@@ -53,7 +54,7 @@ contract Tipping =
                  , tip_id    : tip_id }
 
   record state = { urls               : map(url, url_id)
-                 , claims             : map(url_id, claim_gen * int)
+                 , claims             : map(url_id, claim_gen * int * map(TokenContract, int))
                  , url_index          : map(url_id, url)
                  , tips               : map(tip_id, tip)
                  , retips             : map(retip_id, retip)
@@ -80,7 +81,7 @@ contract Tipping =
 
   payable stateful entrypoint tip(url : string, title : string) : int =
     let url_id = get_url_id(url)
-    let (last_claim_gen, amount) = state.claims[url_id = (0, 0)]
+    let (last_claim_gen, amount, token_claims) = state.claims[url_id = (0, 0, {})]
     let tip_id = Map.size(state.tips)
     let tip = { sender    = Call.caller
               , title     = title
@@ -89,7 +90,7 @@ contract Tipping =
               , url_id    = url_id
               , amount    = Call.value }
     put(state{ tips[tip_id] = tip,
-               claims[url_id] = (last_claim_gen, amount + Call.value) })
+               claims[url_id] = (last_claim_gen, amount + Call.value, token_claims) })
     Chain.event(TipReceived(Call.caller, Call.value, url, tip_id))
     tip_id
 
@@ -99,14 +100,14 @@ contract Tipping =
   payable stateful entrypoint retip(tip_id : tip_id) : int =
     require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
     let tip = state.tips[tip_id]
-    let (last_claim_gen, amount) = state.claims[tip.url_id]
+    let (last_claim_gen, amount, token_claims) = state.claims[tip.url_id]
     let retip_id = Map.size(state.retips)
     let retip = { sender    = Call.caller
                 , claim_gen = last_claim_gen + 1
                 , amount    = Call.value
                 , tip_id    = tip_id }
     put(state{ retips[retip_id] = retip,
-               claims[tip.url_id] = (last_claim_gen, amount + Call.value) })
+               claims[tip.url_id] = (last_claim_gen, amount + Call.value, token_claims) })
     Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[tip.url_id], retip_id))
     retip_id
 
@@ -117,11 +118,12 @@ contract Tipping =
     require_allowed_oracle_service(url, account, recheck)
     require(Map.member(url, state.urls), "URL_NOT_EXISTING")
     let url_id = state.urls[url]
-    let (last_claim_gen, amount) = state.claims[url_id]
+    let (last_claim_gen, amount, token_claims) = state.claims[url_id]
     require(amount != 0, "NO_ZERO_AMOUNT_PAYOUT")
     Chain.spend(account, amount)
     Chain.event(TipWithdrawn(account, amount, url))
-    put(state{ claims[url_id] = (last_claim_gen + 1, 0) })
+    [ token.transfer(account, token_amount) |  (token, token_amount) <- Map.to_list(token_claims) ]
+    put(state{ claims[url_id] = (last_claim_gen + 1, 0, {}) })
 
   stateful entrypoint migrate_balance(new_contract : address) =
     require_owner()
@@ -140,11 +142,11 @@ contract Tipping =
     require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
     [ t | (_, t) <- Map.to_list(state.retips), if (t.tip_id == tip_id)]
 
-  entrypoint unclaimed_for_url(url : string) : int =
+  entrypoint unclaimed_for_url(url : string) : (int * map(TokenContract, int)) =
     require(Map.member(url, state.urls), "URL_NOT_EXISTING")
     let url_id = state.urls[url]
-    let (_, amount) = state.claims[url_id]
-    amount
+    let (_, amount, token_claims) = state.claims[url_id]
+    (amount, token_claims)
 
   entrypoint check_claim(url : string, expected_account : address) =
     state.oracle_service.check_persist_claim(url, expected_account, false)
