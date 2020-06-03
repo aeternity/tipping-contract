@@ -18,6 +18,10 @@
 // THIS IS NOT SECURITY AUDITED
 // DO NEVER USE THIS WITHOUT SECURITY AUDIT FIRST
 
+contract TokenContract =
+  entrypoint allowance_for_caller : (address) => option(int)
+  stateful entrypoint transfer_allowance : (address, address, int) => unit
+
 @compiler >= 4.2
 
 contract OracleService =
@@ -89,6 +93,11 @@ contract Tipping =
                claims[url_id] = (last_claim_gen, amount + Call.value) })
     Chain.event(TipReceived(Call.caller, Call.value, url, tip_id))
     tip_id
+
+  stateful entrypoint tip_token(url : string, title : string, token : TokenContract) : unit =
+    switch(token.allowance_for_caller(Call.caller))
+      Some(value) => token.transfer_allowance(Call.caller, Contract.address, value)
+      None => abort("ALLOWANCE_NOT_EXISTENT")
 
   payable stateful entrypoint retip(tip_id : tip_id) : int =
     require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
