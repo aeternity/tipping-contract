@@ -64,8 +64,8 @@ describe('AEX9 Tipping Contract', () => {
     // 1. create allowance for tipping contract
     // 2. call tip with aex 9 function, passing token contract reference
     // 3. transfer allowance within tip function
-    // TODO 4. save token contract and balance, sender as tip in tipping contract, poss. claim gen per (url_id * TokenContract)
-    // TODO 5. transfer contract tokens when claiming
+    // 4. transfer contract tokens when claiming
+    // TODO 5. save token contract and balance, sender as tip in tipping contract claims
     // TODO 6. enable retip with tokens
 
     it('Tip with Token Contract', async () => {

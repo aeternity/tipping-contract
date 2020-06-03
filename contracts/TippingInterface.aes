@@ -1,3 +1,7 @@
+contract TokenContract =
+  stateful entrypoint transfer_allowance : (address, address, int) => unit
+  stateful entrypoint transfer : (address, int) => unit
+
 contract OracleService =
   record success_claim = { success : bool, caller : address, percentage : int }
 
@@ -13,7 +17,7 @@ contract Tipping =
 
   record tip = { sender : address, title : string, claim_gen : claim_gen, timestamp : int, url_id : url_id, amount : int }
   record retip = { sender : address, amount : int, claim_gen : claim_gen, tip_id : tip_id }
-  record state = { urls : map(url, url_id), claims : map(url_id, claim_gen * int), url_index : map(url_id, url), tips : map(tip_id, tip), retips : map(retip_id, retip), owner : address, oracle_service : OracleService }
+  record state = { urls : map(url, url_id), claims : map(url_id, claim_gen * int * map(TokenContract, int)), url_index : map(url_id, url), tips : map(tip_id, tip), retips : map(retip_id, retip), owner : address, oracle_service : OracleService }
 
   payable stateful entrypoint tip : (string, string) => unit
   payable stateful entrypoint retip : (tip_id) => unit
