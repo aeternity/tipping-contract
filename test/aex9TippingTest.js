@@ -72,7 +72,7 @@ describe('AEX9 Tipping Contract', () => {
         const tippingAddress = contract.deployInfo.address.replace('ct_', 'ak_');
 
         await tokenContract.methods.create_allowance(tippingAddress, 333);
-        await contract.methods.tip_token('domain.test', 'Hello World', tokenContract.deployInfo.address); // TODO add amount argument
+        await contract.methods.tip_token('domain.test', 'Hello World', tokenContract.deployInfo.address, 333);
 
         const balanceTipping = await tokenContract.methods.balance(tippingAddress)
         assert.equal(balanceTipping.decodedResult, 333);
