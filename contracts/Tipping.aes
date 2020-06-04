@@ -136,7 +136,6 @@ contract Tipping =
     require(Map.member(url, state.urls), "URL_NOT_EXISTING")
     let url_id = state.urls[url]
     let (last_claim_gen, amount, token_claims) = state.claims[url_id]
-    require(amount != 0, "NO_ZERO_AMOUNT_PAYOUT")
     Chain.spend(account, amount)
     Chain.event(TipWithdrawn(account, amount, url))
     [ token.transfer(account, token_amount) |  (token, token_amount) <- Map.to_list(token_claims) ]
