@@ -52,6 +52,7 @@ contract Tipping =
   record retip = { sender    : address
                  , amount    : int
                  , claim_gen : claim_gen
+                 , token     : option(TokenContract)
                  , tip_id    : tip_id }
 
   record state = { urls               : map(url, url_id)
@@ -67,6 +68,7 @@ contract Tipping =
     | ReTipReceived(address, int, url, int)
     | TipWithdrawn(address, int, url)
     | TipTokenReceived(address, int, url, TokenContract)
+    | ReTipTokenReceived(address, int, url, TokenContract)
 
   entrypoint init(oracle_service : OracleService, owner : address) : state =
     { urls = {},
@@ -112,7 +114,7 @@ contract Tipping =
     put(state{ tips[tip_id] = tip,
                claims[url_id] = (last_claim_gen, amount, updated_token_claims) })
     token.transfer_allowance(Call.caller, Contract.address, token_amount)
-    Chain.event(TipTokenReceived(Call.caller, Call.value, url, token))
+    Chain.event(TipTokenReceived(Call.caller, token_amount, url, token))
 
   payable stateful entrypoint retip(tip_id : tip_id) : int =
     require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
@@ -122,11 +124,28 @@ contract Tipping =
     let retip = { sender    = Call.caller
                 , claim_gen = last_claim_gen + 1
                 , amount    = Call.value
+                , token     = None
                 , tip_id    = tip_id }
     put(state{ retips[retip_id] = retip,
                claims[tip.url_id] = (last_claim_gen, amount + Call.value, token_claims) })
     Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[tip.url_id], retip_id))
     retip_id
+
+  stateful entrypoint retip_token(tip_id : tip_id, token : TokenContract, token_amount : int) : unit =
+    require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
+    let tip = state.tips[tip_id]
+    let (last_claim_gen, amount, token_claims) = state.claims[tip.url_id]
+    let retip_id = Map.size(state.retips)
+    let retip = { sender    = Call.caller
+                , claim_gen = last_claim_gen + 1
+                , amount    = token_amount
+                , token     = Some(token)
+                , tip_id    = tip_id }
+    let updated_token_claims = token_claims{ [token = 0] @ previous_amount = previous_amount + token_amount }
+    put(state{ retips[retip_id] = retip,
+               claims[tip.url_id] = (last_claim_gen, amount, updated_token_claims) })
+    token.transfer_allowance(Call.caller, Contract.address, token_amount)
+    Chain.event(ReTipTokenReceived(Call.caller, token_amount, state.url_index[tip.url_id], token))
 
   payable stateful entrypoint pre_claim(url : string, expected_account : address) =
     state.oracle_service.query_oracle(value = Call.value, url, expected_account)
