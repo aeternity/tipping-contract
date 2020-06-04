@@ -65,7 +65,7 @@ describe('AEX9 Tipping Contract', () => {
     // 2. call tip with aex 9 function, passing token contract reference
     // 3. transfer allowance within tip function
     // 4. transfer contract tokens when claiming
-    // TODO 5. save token contract and balance, sender as tip in tipping contract claims
+    // 5. save token contract and balance, sender as tip in tipping contract claims
     // TODO 6. enable retip with tokens
 
     it('Tip with Token Contract', async () => {
@@ -79,6 +79,12 @@ describe('AEX9 Tipping Contract', () => {
 
         const balanceAdmin = await tokenContract.methods.balance(await client.address())
         assert.equal(balanceAdmin.decodedResult, 1000 - 333);
+
+        assert.equal((await contract.methods.unclaimed_for_url('domain.test')).decodedResult[0], 0);
+        assert.deepEqual((await contract.methods.unclaimed_for_url('domain.test')).decodedResult[1], [[tokenContract.deployInfo.address, 333]]);
     });
+
+    // TODO test claim tipped tokens
+    // TODO test multiple tips, multiple tokens
 
 });
