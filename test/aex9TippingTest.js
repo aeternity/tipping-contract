@@ -71,7 +71,7 @@ describe('AEX9 Tipping Contract', () => {
     // 3. transfer allowance within tip function
     // 4. transfer contract tokens when claiming
     // 5. save token contract and balance, sender as tip in tipping contract claims
-    // TODO 6. enable retip with tokens
+    // 6. enable retip with tokens
 
     it('Tip with Token Contract', async () => {
         await tokenContract1.methods.create_allowance(tippingAddress, 333);
@@ -107,7 +107,7 @@ describe('AEX9 Tipping Contract', () => {
         await contract.methods.tip_token('domain.test', 'Hello World 2', tokenContract2.deployInfo.address, 333333);
 
         await tokenContract2.methods.change_allowance(tippingAddress, 333333);
-        await contract.methods.tip_token('domain.test', 'Hello World 2', tokenContract2.deployInfo.address, 333333);
+        await contract.methods.retip_token(1, tokenContract2.deployInfo.address, 333333);
 
         const balanceTipping = await tokenContract2.methods.balance(tippingAddress)
         assert.equal(balanceTipping.decodedResult, 333333 + 333333);
