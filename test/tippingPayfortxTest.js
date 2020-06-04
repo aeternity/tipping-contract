@@ -129,8 +129,8 @@ describe('Tipping Contract', () => {
         assert.equal(state1.tips.find(t => t.id === 2).total_unclaimed_amount, "100");
         assert.equal(state1.urls.find(u => u.url === 'domain.test').unclaimed_amount, 0);
 
-        const zeroClaim = await contract.methods.claim('domain.test', wallets[1].publicKey, false).catch(e => e);
-        assert.include(zeroClaim.decodedError, 'NO_ZERO_AMOUNT_PAYOUT');
+        //const zeroClaim = await contract.methods.claim('domain.test', wallets[1].publicKey, false).catch(e => e);
+        //assert.include(zeroClaim.decodedError, 'NO_ZERO_AMOUNT_PAYOUT');
 
         await contract.methods.retip(0, {amount : 53});
         const state2 = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
@@ -162,7 +162,6 @@ describe('Tipping Contract', () => {
         assert.equal(claim.result.returnType, 'ok');
 
         assert.equal(await client.balance(contract.deployInfo.address), 0);
-
     });
 
     it('Tipping Contract Interface', async () => {
