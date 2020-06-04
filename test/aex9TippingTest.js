@@ -73,6 +73,15 @@ describe('AEX9 Tipping Contract', () => {
     // 5. save token contract and balance, sender as tip in tipping contract claims
     // 6. enable retip with tokens
 
+    // TODO what are implications of removing NO_ZERO_PAYOUT
+    // TODO how to migrate to new contract
+    // TODO gas measurement with linear gas usage increase of claiming token tips
+    // TODO adjustments for tipping contract util
+    // TODO best practice for reuse amount field, optional token field
+    // TODO check allowance compatibility of AEX-9 token
+    // TODO more tests with different tips and same token
+    // TODO consider better error checks if allowance is not matching tip token amount
+
     it('Tip with Token Contract', async () => {
         await tokenContract1.methods.create_allowance(tippingAddress, 333);
         await contract.methods.tip_token('domain.test', 'Hello World', tokenContract1.deployInfo.address, 333);
