@@ -17,7 +17,7 @@
 const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
-const TIPPING_CONTRACT = utils.readFileRelative('./contracts/Tipping.aes', 'utf-8');
+const TIPPING_CONTRACT = utils.readFileRelative('./contracts/Tipping_v2.aes', 'utf-8');
 const TIPPING_INTERFACE = utils.readFileRelative('./contracts/TippingInterface.aes', 'utf-8');
 const MOCK_ORACLE_SERVICE_CONTRACT = utils.readFileRelative('./contracts/MockOracleService.aes', 'utf-8');
 
