@@ -1,0 +1,90 @@
+// ISC License
+//
+// Copyright (c) 2020, aeternity developers
+//
+// Permission to use, copy, modify, and/or distribute this software for any
+// purpose with or without fee is hereby granted, provided that the above
+// copyright notice and this permission notice appear in all copies.
+//
+// THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+// REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+// AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+// INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+// LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
+// OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+// PERFORMANCE OF THIS SOFTWARE.
+
+
+// THIS IS NOT SECURITY AUDITED
+// DO NEVER USE THIS WITHOUT SECURITY AUDIT FIRST
+
+@compiler >= 4.2
+
+contract TippingV1 =
+  type tip_id    = int
+  type url_id    = int
+  type retip_id  = int
+  type url       = string
+  type claim_gen = int
+
+  record tip = { sender    : address
+               , title     : string
+               , claim_gen : claim_gen
+               , timestamp : int
+               , url_id    : url_id
+               , amount    : int }
+
+  record retip = { sender    : address
+                 , amount    : int
+                 , claim_gen : claim_gen
+                 , tip_id    : tip_id }
+
+  record state = { urls               : map(url, url_id)
+                 , claims             : map(url_id, claim_gen * int)
+                 , url_index          : map(url_id, url)
+                 , tips               : map(tip_id, tip)
+                 , retips             : map(retip_id, retip)
+                 , owner              : address
+                 , oracle_service     : OracleService }
+
+  stateful entrypoint get_state : () => state
+
+// state migrator contract, external contract that makes state conversion from old to new format
+contract TippingMigration =
+    type tip_id    = int
+    type url_id    = int
+    type retip_id  = int
+    type url       = string
+    type claim_gen = int
+
+    record tip = { sender    : address
+                 , title     : string
+                 , claim_gen : claim_gen
+                 , timestamp : int
+                 , url_id    : url_id
+                 , token     : option(TokenContract)
+                 , amount    : int }
+
+    record retip = { sender    : address
+                   , amount    : int
+                   , claim_gen : claim_gen
+                   , token     : option(TokenContract)
+                   , tip_id    : tip_id }
+
+    record state = { urls               : map(url, url_id)
+                   , claims             : map(url_id, claim_gen * int * map(TokenContract, int))
+                   , url_index          : map(url_id, url)
+                   , tips               : map(tip_id, tip)
+                   , retips             : map(retip_id, retip)
+                   , owner              : address
+                   , oracle_service     : OracleService }
+
+  entrypoint get_state() : state = state
+
+  // TODO 1. read state from v1 contract
+  // TODO 2. convert maps from v1 tip/retip/state records to v2 records
+  // TODO 3. write to state
+  // TODO 4. in v2 init copy state from migrator
+  // TODO 5. manually migrate balance from v1 to v2
+  entrypoint init(tipping_v1 : TippingV1) : state = {}
+
