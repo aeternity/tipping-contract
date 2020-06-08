@@ -20,6 +20,19 @@
 
 @compiler >= 4.2
 
+contract TokenContract =
+  stateful entrypoint transfer_allowance : (address, address, int) => unit
+  stateful entrypoint transfer : (address, int) => unit
+
+contract OracleService =
+  record success_claim =
+    { success : bool
+    , caller : address
+    , percentage : int }
+
+  stateful entrypoint check_persist_claim : (string, address, bool) => success_claim
+  payable stateful entrypoint query_oracle : (string, address) => unit
+
 contract TippingV1 =
   type tip_id    = int
   type url_id    = int
@@ -51,40 +64,47 @@ contract TippingV1 =
 
 // state migrator contract, external contract that makes state conversion from old to new format
 contract TippingMigration =
-    type tip_id    = int
-    type url_id    = int
-    type retip_id  = int
-    type url       = string
-    type claim_gen = int
+  type tip_id    = int
+  type url_id    = int
+  type retip_id  = int
+  type url       = string
+  type claim_gen = int
 
-    record tip = { sender    : address
-                 , title     : string
+  record tip = { sender    : address
+               , title     : string
+               , claim_gen : claim_gen
+               , timestamp : int
+               , url_id    : url_id
+               , token     : option(TokenContract)
+               , amount    : int }
+
+  record retip = { sender    : address
+                 , amount    : int
                  , claim_gen : claim_gen
-                 , timestamp : int
-                 , url_id    : url_id
                  , token     : option(TokenContract)
-                 , amount    : int }
+                 , tip_id    : tip_id }
 
-    record retip = { sender    : address
-                   , amount    : int
-                   , claim_gen : claim_gen
-                   , token     : option(TokenContract)
-                   , tip_id    : tip_id }
+  record state = { urls               : map(url, url_id)
+                 , claims             : map(url_id, claim_gen * int * map(TokenContract, int))
+                 , url_index          : map(url_id, url)
+                 , tips               : map(tip_id, tip)
+                 , retips             : map(retip_id, retip)
+                 , owner              : address
+                 , oracle_service     : OracleService }
 
-    record state = { urls               : map(url, url_id)
-                   , claims             : map(url_id, claim_gen * int * map(TokenContract, int))
-                   , url_index          : map(url_id, url)
-                   , tips               : map(tip_id, tip)
-                   , retips             : map(retip_id, retip)
-                   , owner              : address
-                   , oracle_service     : OracleService }
-
-  entrypoint get_state() : state = state
-
-  // TODO 1. read state from v1 contract
+  // 1. read state from v1 contract
   // TODO 2. convert maps from v1 tip/retip/state records to v2 records
   // TODO 3. write to state
   // TODO 4. in v2 init copy state from migrator
   // TODO 5. manually migrate balance from v1 to v2
-  entrypoint init(tipping_v1 : TippingV1) : state = {}
+  entrypoint init(tipping_v1 : TippingV1) : state =
+    let tipping_v1_state = tipping_v1.get_state()
+    { urls = tipping_v1_state.urls,
+      claims = {}, // TODO implement migration
+      url_index = tipping_v1_state.url_index,
+      tips = {}, // TODO implement migration
+      retips = {}, // TODO implement migration
+      owner = tipping_v1_state.owner,
+      oracle_service = tipping_v1_state.oracle_service }
 
+  entrypoint get_state() : state = state
