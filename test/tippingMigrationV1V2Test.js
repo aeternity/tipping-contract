@@ -62,4 +62,10 @@ describe('Tipping Contract Migration V1 V2', () => {
         const init = await migrationContract.methods.init(contractV1.deployInfo.address);
         assert.equal(init.result.returnType, 'ok');
     });
+
+    it('Deploying Tipping V2 Contract', async () => {
+        migrationContract = await client.getContractInstance(TIPPING_CONTRACT);
+        const init = await migrationContract.methods.init(migrationContract.deployInfo.address);
+        assert.equal(init.result.returnType, 'ok');
+    });
 });

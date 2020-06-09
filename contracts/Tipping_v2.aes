@@ -33,8 +33,7 @@ contract OracleService =
   stateful entrypoint check_persist_claim : (string, address, bool) => success_claim
   payable stateful entrypoint query_oracle : (string, address) => unit
 
-contract Tipping =
-
+contract TippingMigration =
   type tip_id    = int
   type url_id    = int
   type retip_id  = int
@@ -63,6 +62,18 @@ contract Tipping =
                  , owner              : address
                  , oracle_service     : OracleService }
 
+  stateful entrypoint get_state : () => state
+
+contract Tipping =
+  type tip_id    = TippingMigration.tip_id
+  type url_id    = TippingMigration.url_id
+  type retip_id  = TippingMigration.retip_id
+  type url       = TippingMigration.url
+  type claim_gen = TippingMigration.claim_gen
+  type tip       = TippingMigration.tip
+  type retip     = TippingMigration.retip
+  type state     = TippingMigration.state
+
   datatype event =
     TipReceived(address, int, url, int)
     | ReTipReceived(address, int, url, int)
@@ -70,14 +81,8 @@ contract Tipping =
     | TipTokenReceived(address, int, url, TokenContract)
     | ReTipTokenReceived(address, int, url, TokenContract)
 
-  entrypoint init(oracle_service : OracleService, owner : address) : state =
-    { urls = {},
-      claims = {},
-      url_index = {},
-      tips = {},
-      retips = {},
-      owner = owner,
-      oracle_service = oracle_service }
+  entrypoint init(tipping_migration : TippingMigration) : state =
+    tipping_migration.get_state()
 
   stateful entrypoint change_oracle_service(oracle_service : OracleService) =
     require_owner()
