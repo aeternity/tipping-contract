@@ -17,7 +17,7 @@
 const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
-const TIPPING_CONTRACT = utils.readFileRelative('./contracts/Tipping_v2.aes', 'utf-8');
+const TIPPING_CONTRACT = utils.readFileRelative('./contracts/migration/Tipping_v2.aes', 'utf-8');
 const TIPPING_CONTRACT_V1 = utils.readFileRelative('./contracts/migration/Tipping_v1.aes', 'utf-8');
 const TIPPING_MIGRATION_V1_V2 = utils.readFileRelative('./contracts/migration/Tipping_Migration_v1_v2.aes', 'utf-8');
 const MOCK_ORACLE_SERVICE_CONTRACT = utils.readFileRelative('./contracts/MockOracleService.aes', 'utf-8');
@@ -29,7 +29,7 @@ const config = {
 };
 
 describe('Tipping Contract Migration V1 V2', () => {
-    let client, contractV1, migrationContract;
+    let client, contractV1, migrationContract, contractV2;
 
     before(async () => {
         client = await Universal({
@@ -64,8 +64,13 @@ describe('Tipping Contract Migration V1 V2', () => {
     });
 
     it('Deploying Tipping V2 Contract', async () => {
-        migrationContract = await client.getContractInstance(TIPPING_CONTRACT);
-        const init = await migrationContract.methods.init(migrationContract.deployInfo.address);
+        contractV2 = await client.getContractInstance(TIPPING_CONTRACT);
+        const init = await contractV2.methods.init(migrationContract.deployInfo.address);
+        assert.equal(init.result.returnType, 'ok');
+    });
+
+    it('Migrate Balance from V1 to V2', async () => {
+        const init = await contractV1.methods.migrate_balance(contractV2.deployInfo.address);
         assert.equal(init.result.returnType, 'ok');
     });
 });

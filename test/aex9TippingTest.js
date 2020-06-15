@@ -16,7 +16,7 @@
  */
 const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
 
-const TIPPING_CONTRACT = utils.readFileRelative('./contracts/Tipping_v2.aes', 'utf-8');
+const TIPPING_CONTRACT = utils.readFileRelative('./contracts/Tipping_v2_Standalone.aes', 'utf-8');
 const FUNGIBLE_TOKEN_CONTRACT = utils.readFileRelative('./contracts/FungibleToken.aes', 'utf-8');
 const MOCK_ORACLE_SERVICE_CONTRACT = utils.readFileRelative('./contracts/MockOracleService.aes', 'utf-8');
 
@@ -26,7 +26,7 @@ const config = {
     compilerUrl: 'http://localhost:3080'
 };
 
-describe.skip('AEX9 Tipping Contract', () => {
+describe('AEX9 Tipping Contract', () => {
     let client, contract, oracleServiceContract, tokenContract1, tippingAddress;
 
     before(async () => {
@@ -74,7 +74,6 @@ describe.skip('AEX9 Tipping Contract', () => {
     // 6. enable retip with tokens
 
     // TODO what are implications of removing NO_ZERO_PAYOUT
-    // TODO how to migrate to new contract
     // TODO gas measurement with linear gas usage increase of claiming token tips
     // TODO adjustments for tipping contract util
     // TODO best practice for reuse amount field, optional token field

@@ -1,0 +1,202 @@
+// ISC License
+//
+// Copyright (c) 2020, aeternity developers
+//
+// Permission to use, copy, modify, and/or distribute this software for any
+// purpose with or without fee is hereby granted, provided that the above
+// copyright notice and this permission notice appear in all copies.
+//
+// THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+// REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+// AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+// INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+// LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
+// OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+// PERFORMANCE OF THIS SOFTWARE.
+
+
+// THIS IS NOT SECURITY AUDITED
+// DO NEVER USE THIS WITHOUT SECURITY AUDIT FIRST
+
+@compiler >= 4.2
+
+contract TokenContract =
+  stateful entrypoint transfer_allowance : (address, address, int) => unit
+  stateful entrypoint transfer : (address, int) => unit
+
+contract OracleService =
+  record success_claim =
+    { success : bool
+    , caller : address
+    , percentage : int }
+
+  stateful entrypoint check_persist_claim : (string, address, bool) => success_claim
+  payable stateful entrypoint query_oracle : (string, address) => unit
+
+contract Tipping =
+
+  type tip_id    = int
+  type url_id    = int
+  type retip_id  = int
+  type url       = string
+  type claim_gen = int
+
+  record tip = { sender    : address
+               , title     : string
+               , claim_gen : claim_gen
+               , timestamp : int
+               , url_id    : url_id
+               , token     : option(TokenContract)
+               , amount    : int }
+
+  record retip = { sender    : address
+                 , amount    : int
+                 , claim_gen : claim_gen
+                 , token     : option(TokenContract)
+                 , tip_id    : tip_id }
+
+  record state = { urls               : map(url, url_id)
+                 , claims             : map(url_id, claim_gen * int * map(TokenContract, int))
+                 , url_index          : map(url_id, url)
+                 , tips               : map(tip_id, tip)
+                 , retips             : map(retip_id, retip)
+                 , owner              : address
+                 , oracle_service     : OracleService }
+
+  datatype event =
+    TipReceived(address, int, url)
+    | ReTipReceived(address, int, url)
+    | TipWithdrawn(address, int, url)
+    | TipTokenReceived(address, int, url, TokenContract)
+    | ReTipTokenReceived(address, int, url, TokenContract)
+
+  entrypoint init(oracle_service : OracleService, owner : address) : state =
+    { urls = {},
+      claims = {},
+      url_index = {},
+      tips = {},
+      retips = {},
+      owner = owner,
+      oracle_service = oracle_service }
+
+  stateful entrypoint change_oracle_service(oracle_service : OracleService) =
+    require_owner()
+    put(state{ oracle_service = oracle_service })
+
+  payable stateful entrypoint tip(url : string, title : string) : unit =
+    let url_id = get_url_id(url)
+    let (last_claim_gen, amount, token_claims) = state.claims[url_id = (0, 0, {})]
+    let tip_id = Map.size(state.tips)
+    let tip = { sender    = Call.caller
+              , title     = title
+              , claim_gen = last_claim_gen + 1
+              , timestamp = Chain.timestamp
+              , url_id    = url_id
+              , token     = None
+              , amount    = Call.value }
+    put(state{ tips[tip_id] = tip,
+               claims[url_id] = (last_claim_gen, amount + Call.value, token_claims) })
+    Chain.event(TipReceived(Call.caller, Call.value, url))
+
+  stateful entrypoint tip_token(url : string, title : string, token : TokenContract, token_amount : int) : unit =
+    let url_id = get_url_id(url)
+    let (last_claim_gen, amount, token_claims) = state.claims[url_id = (0, 0, {})]
+    let tip_id = Map.size(state.tips)
+    let tip = { sender    = Call.caller
+              , title     = title
+              , claim_gen = last_claim_gen + 1
+              , timestamp = Chain.timestamp
+              , url_id    = url_id
+              , token     = Some(token)
+              , amount    = token_amount }
+    let updated_token_claims = token_claims{ [token = 0] @ previous_amount = previous_amount + token_amount }
+    put(state{ tips[tip_id] = tip,
+               claims[url_id] = (last_claim_gen, amount, updated_token_claims) })
+    token.transfer_allowance(Call.caller, Contract.address, token_amount)
+    Chain.event(TipTokenReceived(Call.caller, token_amount, url, token))
+
+  payable stateful entrypoint retip(tip_id : tip_id) : unit =
+    require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
+    let tip = state.tips[tip_id]
+    let (last_claim_gen, amount, token_claims) = state.claims[tip.url_id]
+    let retip_id = Map.size(state.retips)
+    let retip = { sender    = Call.caller
+                , claim_gen = last_claim_gen + 1
+                , amount    = Call.value
+                , token     = None
+                , tip_id    = tip_id }
+    put(state{ retips[retip_id] = retip,
+               claims[tip.url_id] = (last_claim_gen, amount + Call.value, token_claims) })
+    Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[tip.url_id]))
+
+  stateful entrypoint retip_token(tip_id : tip_id, token : TokenContract, token_amount : int) : unit =
+    require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
+    let tip = state.tips[tip_id]
+    let (last_claim_gen, amount, token_claims) = state.claims[tip.url_id]
+    let retip_id = Map.size(state.retips)
+    let retip = { sender    = Call.caller
+                , claim_gen = last_claim_gen + 1
+                , amount    = token_amount
+                , token     = Some(token)
+                , tip_id    = tip_id }
+    let updated_token_claims = token_claims{ [token = 0] @ previous_amount = previous_amount + token_amount }
+    put(state{ retips[retip_id] = retip,
+               claims[tip.url_id] = (last_claim_gen, amount, updated_token_claims) })
+    token.transfer_allowance(Call.caller, Contract.address, token_amount)
+    Chain.event(ReTipTokenReceived(Call.caller, token_amount, state.url_index[tip.url_id], token))
+
+  payable stateful entrypoint pre_claim(url : string, expected_account : address) =
+    state.oracle_service.query_oracle(value = Call.value, url, expected_account)
+
+  stateful entrypoint claim(url : string, account : address, recheck : bool) =
+    require_allowed_oracle_service(url, account, recheck)
+    require(Map.member(url, state.urls), "URL_NOT_EXISTING")
+    let url_id = state.urls[url]
+    let (last_claim_gen, amount, token_claims) = state.claims[url_id]
+    Chain.spend(account, amount)
+    Chain.event(TipWithdrawn(account, amount, url))
+    [ token.transfer(account, token_amount) |  (token, token_amount) <- Map.to_list(token_claims) ]
+    put(state{ claims[url_id] = (last_claim_gen + 1, 0, {}) })
+
+  stateful entrypoint migrate_balance(new_contract : address) =
+    require_owner()
+    Chain.spend(new_contract, Contract.balance)
+
+  // GETTER FUNCTIONS
+
+  entrypoint get_state() : state = state
+
+  entrypoint tips_for_url(url : string) : list(tip) =
+    require(Map.member(url, state.urls), "URL_NOT_EXISTING")
+    let url_id = state.urls[url]
+    [ t | (_, t) <- Map.to_list(state.tips), if (t.url_id == url_id)]
+
+  entrypoint retips_for_tip(tip_id : tip_id) : list(retip) =
+    require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
+    [ t | (_, t) <- Map.to_list(state.retips), if (t.tip_id == tip_id)]
+
+  entrypoint unclaimed_for_url(url : string) : (int * map(TokenContract, int)) =
+    require(Map.member(url, state.urls), "URL_NOT_EXISTING")
+    let url_id = state.urls[url]
+    let (_, amount, token_claims) = state.claims[url_id]
+    (amount, token_claims)
+
+  entrypoint check_claim(url : string, expected_account : address) =
+    state.oracle_service.check_persist_claim(url, expected_account, false)
+
+  // INTERNAL FUNCTIONS
+
+  function require_owner() =
+    require(Call.caller == state.owner, "OWNER_REQUIRED")
+
+  stateful function get_url_id(url) =
+    switch(Map.lookup(url, state.urls))
+      Some(url_id) => url_id
+      None =>
+        let url_id = Map.size(state.urls)
+        put(state{ urls[url] = url_id, url_index[url_id] = url })
+        url_id
+
+  function require_allowed_oracle_service(url : string, account : address, recheck : bool) =
+    let allowed = state.oracle_service.check_persist_claim(url, account, recheck).success
+    require(allowed, "ORACLE_SEVICE_CHECK_CLAIM_FAILED")
