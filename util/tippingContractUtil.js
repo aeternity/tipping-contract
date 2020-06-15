@@ -21,7 +21,6 @@ tippingContractUtil.getTipsRetips = (state) => {
     return data;
   });
 
-
   const tips = state.tips.map(([id, data]) => {
     data.id = id;
     data.url = findUrl(data.url_id);
@@ -39,7 +38,6 @@ tippingContractUtil.getTipsRetips = (state) => {
     return data;
   });
 
-
   const urls = state.urls.map(([url, id]) => {
     const urlTips = tips.filter(tip => tip.url_id === id);
     const claim = state.claims.find(([urlId, _]) => urlId === id)[1];
@@ -51,7 +49,6 @@ tippingContractUtil.getTipsRetips = (state) => {
       unclaimed_amount: claim[1]
     };
   });
-
 
   return {
     urls: urls,

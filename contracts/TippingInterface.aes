@@ -15,8 +15,8 @@ contract Tipping =
   type url = string
   type claim_gen = int
 
-  record tip = { sender : address, title : string, claim_gen : claim_gen, timestamp : int, url_id : url_id, token : option(TokenContract), amount : int }
-  record retip = { sender : address, amount : int, claim_gen : claim_gen, token: option(TokenContract), tip_id : tip_id }
+  record tip = { sender : address, title : string, claim_gen : claim_gen, timestamp : int, url_id : url_id, token : option(TokenContract), amount : int, token_amount : int }
+  record retip = { sender : address, amount : int, token_amount : int, claim_gen : claim_gen, token: option(TokenContract), tip_id : tip_id }
   record state = { urls : map(url, url_id), claims : map(url_id, claim_gen * int * map(TokenContract, int)), url_index : map(url_id, url), tips : map(tip_id, tip), retips : map(retip_id, retip), owner : address, oracle_service : OracleService }
 
   payable stateful entrypoint tip : (string, string) => unit

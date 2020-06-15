@@ -15,7 +15,6 @@
  *  PERFORMANCE OF THIS SOFTWARE.
  */
 const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
-const TippingContractUtil = require('../util/tippingContractUtil');
 
 const TIPPING_CONTRACT = utils.readFileRelative('./contracts/migration/Tipping_v2.aes', 'utf-8');
 const TIPPING_CONTRACT_V1 = utils.readFileRelative('./contracts/migration/Tipping_v1.aes', 'utf-8');
@@ -28,7 +27,7 @@ const config = {
     compilerUrl: 'http://localhost:3080'
 };
 
-describe('Tipping Contract Migration V1 V2', () => {
+describe.skip('Tipping Contract Migration V1 V2', () => {
     let client, contractV1, migrationContract, contractV2;
 
     before(async () => {
