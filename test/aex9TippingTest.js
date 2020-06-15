@@ -138,6 +138,12 @@ describe('AEX9 Tipping Contract', () => {
     });
 
     it('Tipping Contract Util with Tokens', async () => {
+        await tokenContract1.methods.change_allowance(tippingAddress, 123);
+        await contract.methods.tip_token('domain.test', 'Hello World 3', tokenContract1.deployInfo.address, 123);
+
+        await tokenContract2.methods.change_allowance(tippingAddress, 123456);
+        await contract.methods.retip_token(1, tokenContract2.deployInfo.address, 123456);
+
         const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
         console.log(JSON.stringify(state, null, 2));
     });
