@@ -94,8 +94,8 @@ contract TippingMigration =
 
   // 1. read state from v1 contract
   // 2. convert maps from v1 tip/retip/state records to v2 records
-  // TODO 3. in v2 init copy state from migrator
-  // TODO 4. manually migrate balance from v1 to v2
+  // 3. in v2 init copy state from migrator
+  // 4. manually migrate balance from v1 to v2
   entrypoint init(tipping_v1 : TippingV1) : state =
     let tipping_v1_state = tipping_v1.get_state()
     { urls = tipping_v1_state.urls,
