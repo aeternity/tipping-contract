@@ -139,6 +139,6 @@ describe('AEX9 Tipping Contract', () => {
 
     it('Tipping Contract Util with Tokens', async () => {
         const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
-        console.log(state);
+        console.log(JSON.stringify(state, null, 2));
     });
 });
