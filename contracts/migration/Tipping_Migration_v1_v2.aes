@@ -89,20 +89,24 @@ payable contract TippingMigration =
                  , token        : option(TokenContract)
                  , tip_id       : tip_id }
 
-  record state = { urls               : map(url, url_id)
-                 , claims             : map(url_id, claim_gen * int * map(TokenContract, int))
-                 , url_index          : map(url_id, url)
-                 , tips               : map(tip_id, tip)
-                 , retips             : map(retip_id, retip)
-                 , owner              : address
-                 , oracle_service     : OracleService }
+  record state_migration = { urls           : map(url, url_id)
+                           , claims         : map(url_id, claim_gen * int * map(TokenContract, int))
+                           , url_index      : map(url_id, url)
+                           , tips           : map(tip_id, tip)
+                           , retips         : map(retip_id, retip)
+                           , owner          : address
+                           , oracle_service : OracleService }
 
+  record state = { tipping_v1 : TippingV1 }
   // 1. read state from v1 contract
   // 2. convert maps from v1 tip/retip/state records to v2 records
   // 3. in v2 init copy state from migrator
   // 4. manually migrate balance from v1 to v2
   entrypoint init(tipping_v1 : TippingV1) : state =
-    let tipping_v1_state = tipping_v1.get_state()
+    { tipping_v1 = tipping_v1 }
+
+  entrypoint migrate_state() : state_migration =
+    let tipping_v1_state = state.tipping_v1.get_state()
     { urls = tipping_v1_state.urls,
       claims = Map.from_list([ (url_id, (claim_gen, amount, {})) | (url_id, (claim_gen, amount)) <- Map.to_list(tipping_v1_state.claims) ]),
       url_index = tipping_v1_state.url_index,
@@ -122,8 +126,6 @@ payable contract TippingMigration =
                                         , tip_id = retip.tip_id }) | (url_id, retip) <- Map.to_list(tipping_v1_state.retips) ]),
       owner = tipping_v1_state.owner,
       oracle_service = tipping_v1_state.oracle_service }
-
-  entrypoint get_state() : state = state
 
   stateful entrypoint migration_forward_balance(c : TippingV2BalanceReceiver) =
     c.receive_migrate_balance(value = Contract.balance)

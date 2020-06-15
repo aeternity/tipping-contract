@@ -59,15 +59,15 @@ contract TippingMigration =
                  , token        : option(TokenContract)
                  , tip_id       : tip_id }
 
-  record state = { urls           : map(url, url_id)
-                 , claims         : map(url_id, claim_gen * int * map(TokenContract, int))
-                 , url_index      : map(url_id, url)
-                 , tips           : map(tip_id, tip)
-                 , retips         : map(retip_id, retip)
-                 , owner          : address
-                 , oracle_service : OracleService }
+  record state_migration = { urls           : map(url, url_id)
+                           , claims         : map(url_id, claim_gen * int * map(TokenContract, int))
+                           , url_index      : map(url_id, url)
+                           , tips           : map(tip_id, tip)
+                           , retips         : map(retip_id, retip)
+                           , owner          : address
+                           , oracle_service : OracleService }
 
-  stateful entrypoint get_state : () => state
+  stateful entrypoint migrate_state : () => state_migration
 
 contract Tipping =
   type tip_id    = TippingMigration.tip_id
@@ -77,7 +77,7 @@ contract Tipping =
   type claim_gen = TippingMigration.claim_gen
   type tip       = TippingMigration.tip
   type retip     = TippingMigration.retip
-  type state     = TippingMigration.state
+  type state     = TippingMigration.state_migration
 
   datatype event =
     TipReceived(address, int, url, int)
@@ -87,7 +87,7 @@ contract Tipping =
     | ReTipTokenReceived(address, int, url, TokenContract)
 
   entrypoint init(tipping_migration : TippingMigration) : state =
-    tipping_migration.get_state()
+    tipping_migration.migrate_state()
 
   stateful entrypoint change_oracle_service(oracle_service : OracleService) =
     require_owner()
