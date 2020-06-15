@@ -62,8 +62,11 @@ contract TippingV1 =
 
   stateful entrypoint get_state : () => state
 
+contract TippingV2BalanceReceiver =
+  payable stateful entrypoint receive_migrate_balance: () => unit
+
 // state migrator contract, external contract that makes state conversion from old to new format
-contract TippingMigration =
+payable contract TippingMigration =
   type tip_id    = int
   type url_id    = int
   type retip_id  = int
@@ -121,3 +124,6 @@ contract TippingMigration =
       oracle_service = tipping_v1_state.oracle_service }
 
   entrypoint get_state() : state = state
+
+  stateful entrypoint migration_forward_balance(c : TippingV2BalanceReceiver) =
+    c.receive_migrate_balance(value = Contract.balance)

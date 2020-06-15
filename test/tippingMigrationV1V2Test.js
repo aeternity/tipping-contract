@@ -15,6 +15,7 @@
  *  PERFORMANCE OF THIS SOFTWARE.
  */
 const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
+const TippingContractUtil = require('../util/tippingContractUtil');
 
 const TIPPING_CONTRACT = utils.readFileRelative('./contracts/migration/Tipping_v2.aes', 'utf-8');
 const TIPPING_CONTRACT_V1 = utils.readFileRelative('./contracts/migration/Tipping_v1.aes', 'utf-8');
@@ -27,7 +28,7 @@ const config = {
     compilerUrl: 'http://localhost:3080'
 };
 
-describe.skip('Tipping Contract Migration V1 V2', () => {
+describe('Tipping Contract Migration V1 V2', () => {
     let client, contractV1, migrationContract, contractV2;
 
     before(async () => {
@@ -69,7 +70,15 @@ describe.skip('Tipping Contract Migration V1 V2', () => {
     });
 
     it('Migrate Balance from V1 to V2', async () => {
-        const init = await contractV1.methods.migrate_balance(contractV2.deployInfo.address);
-        assert.equal(init.result.returnType, 'ok');
+        const migrateBalance = await contractV1.methods.migrate_balance(migrationContract.deployInfo.address.replace('ct_', 'ak_'));
+        assert.equal(migrateBalance.result.returnType, 'ok');
+
+        const migrationForwardBalance = await migrationContract.methods.migration_forward_balance(contractV2.deployInfo.address)
+        assert.equal(migrationForwardBalance.result.returnType, 'ok');
+    });
+
+    it('Get V2 State', async () => {
+        const state = TippingContractUtil.getTipsRetips((await contractV2.methods.get_state()).decodedResult);
+        console.log(JSON.stringify(state, null, 2));
     });
 });
