@@ -15,6 +15,7 @@
  *  PERFORMANCE OF THIS SOFTWARE.
  */
 const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
+const TippingContractUtil = require('../util/tippingContractUtil');
 
 const TIPPING_CONTRACT = utils.readFileRelative('./contracts/Tipping_v2_Standalone.aes', 'utf-8');
 const FUNGIBLE_TOKEN_CONTRACT = utils.readFileRelative('./contracts/FungibleToken.aes', 'utf-8');
@@ -76,7 +77,6 @@ describe('AEX9 Tipping Contract', () => {
     // TODO what are implications of removing NO_ZERO_PAYOUT
     // TODO gas measurement with linear gas usage increase of claiming token tips
     // TODO adjustments for tipping contract util
-    // TODO best practice for reuse amount field, optional token field
     // TODO check allowance compatibility of AEX-9 token
     // TODO more tests with different tips and same token
     // TODO consider better error checks if allowance is not matching tip token amount
@@ -135,5 +135,10 @@ describe('AEX9 Tipping Contract', () => {
 
         assert.equal((await tokenContract2.methods.balance(tippingAddress)).decodedResult, 0);
         assert.equal((await tokenContract2.methods.balance(wallets[2].publicKey)).decodedResult, 333333 + 333333);
+    });
+
+    it('Tipping Contract Util with Tokens', async () => {
+        const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
+        console.log(state);
     });
 });
