@@ -95,7 +95,6 @@ describe('Tipping Contract Migration V1 V2', () => {
 
     it('Check V2 State after Migration', async () => {
         stateAfterMigration = TippingContractUtil.getTipsRetips((await contractV2.methods.get_state()).decodedResult);
-        console.log(JSON.stringify(stateAfterMigration, null, 2));
         assert.deepEqual(stateAfterMigration, stateBeforeMigration);
     });
 });

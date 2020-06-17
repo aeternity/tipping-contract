@@ -22,7 +22,7 @@ tippingContractUtil.getTipsRetips = (state) => {
   const findRetips = (tipId, urlId) => state.retips.filter(([_, data]) => data.tip_id === tipId).map(([id, data]) => {
     data.id = id;
     data.claim = findClaimGen(data.claim_gen, urlId);
-    data.token = data.token ? data.token : [undefined];
+    data.token = data.token ? data.token : null;
     data.token_amount = data.token_amount ? data.token_amount : 0;
 
     return data;
@@ -34,7 +34,7 @@ tippingContractUtil.getTipsRetips = (state) => {
     data.retips = findRetips(id, data.url_id);
     data.claim = findClaimGen(data.claim_gen, data.url_id);
 
-    data.token = data.token ? data.token : [undefined];
+    data.token = data.token ? data.token : null;
     data.token_amount = data.token_amount ? data.token_amount : 0;
 
     data.total_amount = new BigNumber(data.amount).plus(data.retips.reduce((acc, retip) => {
