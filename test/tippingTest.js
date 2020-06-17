@@ -158,7 +158,11 @@ describe('Tipping Contract', () => {
     });
 
     it('Tipping Contract: migrate balance', async () => {
-        const claim = await contract.methods.migrate_balance(wallets[2].publicKey);
+        const futureContract = await client.getContractInstance(TIPPING_CONTRACT);
+        const init = await futureContract.methods.init(oracleServiceContract.deployInfo.address, wallets[0].publicKey);
+        assert.equal(init.result.returnType, 'ok');
+
+        const claim = await contract.methods.migrate_balance(futureContract.deployInfo.address);
         assert.equal(claim.result.returnType, 'ok');
 
         assert.equal(await client.balance(contract.deployInfo.address), 0);
