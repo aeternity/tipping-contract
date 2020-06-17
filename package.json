@@ -12,6 +12,7 @@
   "dependencies": {
     "@aeternity/aepp-sdk": "github:aeternity/aepp-sdk-js#feat/add-support-of-external-contract-aci",
     "aeproject-lib": "^2.2.0",
-    "bignumber.js": "^9.0.0"
+    "bignumber.js": "^9.0.0",
+    "esm": "^3.2.25"
   }
 }
