@@ -1,11 +1,11 @@
 dist: xenial
-sudo: false
+os: linux
 
 language: node_js
 node_js: '12'
 
 script:
   - npm install -g aeproject
-  - npm install
+  - npm install && npm update
   - aeproject env
   - aeproject test
