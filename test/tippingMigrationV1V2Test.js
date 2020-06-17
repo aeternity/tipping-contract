@@ -30,6 +30,7 @@ const config = {
 
 describe('Tipping Contract Migration V1 V2', () => {
     let client, contractV1, migrationContract, contractV2;
+    let stateBeforeMigration, stateAfterMigration;
 
     before(async () => {
         client = await Universal({
@@ -57,6 +58,21 @@ describe('Tipping Contract Migration V1 V2', () => {
         assert.equal(init.result.returnType, 'ok');
     });
 
+    it('Generate Sample State in V1 Contract', async () => {
+        await contractV1.methods.tip('domain.test', 'Hello World', {amount : 1});
+        await contractV1.methods.retip(0, {amount : 2});
+        await contractV1.methods.claim('domain.test', wallets[1].publicKey, false);
+
+        await contractV1.methods.tip('domain.test', 'Other Test', {amount : 4});
+
+        await contractV1.methods.tip('other.test', 'Just another Test', {amount : 8});
+        await contractV1.methods.retip(2, {amount : 16});
+
+        stateBeforeMigration = TippingContractUtil.getTipsRetips((await contractV1.methods.get_state()).decodedResult);
+        assert.equal(stateBeforeMigration.urls.find(u => u.url === 'domain.test').unclaimed_amount, 4);
+        assert.equal(stateBeforeMigration.urls.find(u => u.url === 'other.test').unclaimed_amount, 24);
+    });
+
     it('Deploying Tipping Migration Contract', async () => {
         migrationContract = await client.getContractInstance(TIPPING_MIGRATION_V1_V2);
         const init = await migrationContract.methods.init(contractV1.deployInfo.address);
@@ -77,8 +93,9 @@ describe('Tipping Contract Migration V1 V2', () => {
         assert.equal(migrationForwardBalance.result.returnType, 'ok');
     });
 
-    it('Get V2 State', async () => {
-        const state = TippingContractUtil.getTipsRetips((await contractV2.methods.get_state()).decodedResult);
-        console.log(JSON.stringify(state, null, 2));
+    it('Check V2 State after Migration', async () => {
+        stateAfterMigration = TippingContractUtil.getTipsRetips((await contractV2.methods.get_state()).decodedResult);
+        console.log(JSON.stringify(stateAfterMigration, null, 2));
+        assert.deepEqual(stateAfterMigration, stateBeforeMigration);
     });
 });
