@@ -66,6 +66,10 @@ contract TippingV2BalanceReceiver =
   payable stateful entrypoint receive_migrate_balance: () => unit
 
 // state migrator contract, external contract that makes state conversion from old to new format
+// 1. in v2 init call migrate_state from migrator
+// 2. read state from v1 contract
+// 3. convert maps from v1 tip/retip/state records to v2 records
+// 4. manually migrate balance from v1 to v2 via migration_forward_balance
 payable contract TippingMigration =
   type tip_id    = int
   type url_id    = int
@@ -98,10 +102,7 @@ payable contract TippingMigration =
                            , oracle_service : OracleService }
 
   record state = { tipping_v1 : TippingV1 }
-  // 1. read state from v1 contract
-  // 2. convert maps from v1 tip/retip/state records to v2 records
-  // 3. in v2 init copy state from migrator
-  // 4. manually migrate balance from v1 to v2
+
   entrypoint init(tipping_v1 : TippingV1) : state =
     { tipping_v1 = tipping_v1 }
 

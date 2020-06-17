@@ -76,7 +76,6 @@ describe('AEX9 Tipping Contract', () => {
 
     // TODO what are implications of removing NO_ZERO_PAYOUT
     // TODO gas measurement with linear gas usage increase of claiming token tips
-    // TODO adjustments for tipping contract util
     // TODO check allowance compatibility of AEX-9 token
     // TODO more tests with different tips and same token
     // TODO consider better error checks if allowance is not matching tip token amount
