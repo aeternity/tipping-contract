@@ -12,16 +12,19 @@ tippingContractUtil.getTipsRetips = (state) => {
       unclaimed: tipClaimGen > data[0],
       claim_gen: data[0],
       unclaimed_amount: data[1],
-      token_unclaimed_amount: data[2].reduce((acc, unclaimed_token) => {
+      token_unclaimed_amount: data[2] ? data[2].reduce((acc, unclaimed_token) => {
         acc[unclaimed_token[0]] = unclaimed_token[1];
         return acc;
-      }, {})
+      }, {}) : {}
     };
   };
 
   const findRetips = (tipId, urlId) => state.retips.filter(([_, data]) => data.tip_id === tipId).map(([id, data]) => {
     data.id = id;
     data.claim = findClaimGen(data.claim_gen, urlId);
+    data.token = data.token ? data.token : [undefined];
+    data.token_amount = data.token_amount ? data.token_amount : 0;
+
     return data;
   });
 
@@ -30,6 +33,9 @@ tippingContractUtil.getTipsRetips = (state) => {
     data.url = findUrl(data.url_id);
     data.retips = findRetips(id, data.url_id);
     data.claim = findClaimGen(data.claim_gen, data.url_id);
+
+    data.token = data.token ? data.token : [undefined];
+    data.token_amount = data.token_amount ? data.token_amount : 0;
 
     data.total_amount = new BigNumber(data.amount).plus(data.retips.reduce((acc, retip) => {
       return acc.plus(retip.amount)
@@ -65,10 +71,10 @@ tippingContractUtil.getTipsRetips = (state) => {
       tip_ids: urlTips.map(tip => tip.id),
       retip_ids: urlTips.flatMap(tip => tip.retips.map(retip => retip.id)),
       unclaimed_amount: claim[1],
-      token_unclaimed_amount: claim[2].reduce((acc, unclaimed_token) => {
+      token_unclaimed_amount: claim[2] ? claim[2].reduce((acc, unclaimed_token) => {
         acc[unclaimed_token[0]] = unclaimed_token[1];
         return acc;
-      }, {})
+      }, {}) : {}
     };
   });
 
