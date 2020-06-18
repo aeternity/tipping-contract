@@ -156,4 +156,4 @@ contract Tipping =
 
   function require_allowed_oracle_service(url : string, account : address, recheck : bool) =
     let allowed = state.oracle_service.check_persist_claim(url, account, recheck).success
-    require(allowed, "ORACLE_SEVICE_CHECK_CLAIM_FAILED")
+    require(allowed, "ORACLE_SERVICE_CHECK_CLAIM_FAILED")
