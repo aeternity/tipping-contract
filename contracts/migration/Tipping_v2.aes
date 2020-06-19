@@ -80,8 +80,8 @@ contract Tipping =
   type state     = TippingMigration.state_migration
 
   datatype event =
-    TipReceived(address, int, url, int)
-    | ReTipReceived(address, int, url, int)
+    TipReceived(address, int, url)
+    | ReTipReceived(address, int, url)
     | TipWithdrawn(address, int, url)
     | TipTokenReceived(address, int, url, TokenContract)
     | ReTipTokenReceived(address, int, url, TokenContract)
@@ -107,11 +107,11 @@ contract Tipping =
               , amount       = Call.value }
     put(state{ tips[tip_id] = tip,
                claims[url_id] = (last_claim_gen, amount + Call.value, token_claims) })
-    Chain.event(TipReceived(Call.caller, Call.value, url, tip_id))
+    Chain.event(TipReceived(Call.caller, Call.value, url))
     tip_id
 
   // if allowance is not created before or to little this wil fail with NON_NEGATIVE_VALUE_REQUIRED
-  stateful entrypoint tip_token(url : string, title : string, token : TokenContract, token_amount : int) : unit =
+  stateful entrypoint tip_token(url : string, title : string, token : TokenContract, token_amount : int) : int =
     let url_id = get_url_id(url)
     let (last_claim_gen, amount, token_claims) = state.claims[url_id = (0, 0, {})]
     let tip_id = Map.size(state.tips)
@@ -128,6 +128,7 @@ contract Tipping =
                claims[url_id] = (last_claim_gen, amount, updated_token_claims) })
     token.transfer_allowance(Call.caller, Contract.address, token_amount)
     Chain.event(TipTokenReceived(Call.caller, token_amount, url, token))
+    tip_id
 
   payable stateful entrypoint retip(tip_id : tip_id) : int =
     require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
@@ -142,11 +143,11 @@ contract Tipping =
                 , tip_id       = tip_id }
     put(state{ retips[retip_id] = retip,
                claims[tip.url_id] = (last_claim_gen, amount + Call.value, token_claims) })
-    Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[tip.url_id], retip_id))
+    Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[tip.url_id]))
     retip_id
 
   // if allowance is not created before or to little this wil fail with NON_NEGATIVE_VALUE_REQUIRED
-  stateful entrypoint retip_token(tip_id : tip_id, token : TokenContract, token_amount : int) : unit =
+  stateful entrypoint retip_token(tip_id : tip_id, token : TokenContract, token_amount : int) : int =
     require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
     let tip = state.tips[tip_id]
     let (last_claim_gen, amount, token_claims) = state.claims[tip.url_id]
@@ -162,6 +163,7 @@ contract Tipping =
                claims[tip.url_id] = (last_claim_gen, amount, updated_token_claims) })
     token.transfer_allowance(Call.caller, Contract.address, token_amount)
     Chain.event(ReTipTokenReceived(Call.caller, token_amount, state.url_index[tip.url_id], token))
+    retip_id
 
   payable stateful entrypoint pre_claim(url : string, expected_account : address) =
     state.oracle_service.query_oracle(value = Call.value, url, expected_account)
