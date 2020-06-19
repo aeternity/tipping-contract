@@ -28,7 +28,7 @@ const config = {
 };
 
 describe('AEX9 Tipping Contract', () => {
-    let client, contract, oracleServiceContract, tokenContract1, tippingAddress;
+    let client, contract, oracleServiceContract, tokenContract1, tokenContract2, tippingAddress;
 
     before(async () => {
         client = await Universal({
