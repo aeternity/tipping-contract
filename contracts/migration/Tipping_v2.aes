@@ -110,7 +110,7 @@ contract Tipping =
     Chain.event(TipReceived(Call.caller, Call.value, url))
     tip_id
 
-  // if allowance is not created before or to little this wil fail with NON_NEGATIVE_VALUE_REQUIRED
+  // if allowance is not created before or to little this will fail with NON_NEGATIVE_VALUE_REQUIRED
   stateful entrypoint tip_token(url : string, title : string, token : TokenContract, token_amount : int) : int =
     let url_id = get_url_id(url)
     let (last_claim_gen, amount, token_claims) = state.claims[url_id = (0, 0, {})]
@@ -146,7 +146,7 @@ contract Tipping =
     Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[tip.url_id]))
     retip_id
 
-  // if allowance is not created before or to little this wil fail with NON_NEGATIVE_VALUE_REQUIRED
+  // if allowance is not created before or to little this will fail with NON_NEGATIVE_VALUE_REQUIRED
   stateful entrypoint retip_token(tip_id : tip_id, token : TokenContract, token_amount : int) : int =
     require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
     let tip = state.tips[tip_id]
