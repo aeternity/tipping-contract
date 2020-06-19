@@ -17,6 +17,6 @@ jobs:
         with:
           node-version: 12.x
       - run: npm install -g aeproject
-      - run: npm install && npm update
+      - run: npm install
       - run: aeproject env
       - run: aeproject test
