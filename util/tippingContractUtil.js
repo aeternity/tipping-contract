@@ -28,7 +28,34 @@ tippingContractUtil.getTipsRetips = (state) => {
     return data;
   });
 
-  const tips = state.tips.map(([id, data]) => {
+  const tips = state.tips.map(([id, tipTypeData]) => {
+    const [tipType, tipData] = Object.entries(tipTypeData)[0];
+    switch (tipType) {
+      case 'AeTip':
+        data = tipData[0];
+        data.url_id = tipData[1];
+        data.amount = tipData[2];
+        data.claim_gen = tipData[3];
+        break;
+      case 'TokenTip':
+        data = tipData[0];
+        data.url_id = tipData[1];
+        data.token = tipData[2].token;
+        data.token_amount = tipData[2].amount;
+        data.claim_gen = tipData[3];
+        break;
+      case 'DirectAeTip':
+        data = tipData[0];
+        data.amount = tipData[1];
+        break;
+      case 'DirectTokenTip':
+        data = tipData[0];
+        data.token = tipData[1].token;
+        data.token_amount = tipData[1].amount;
+        break;
+    }
+
+    data.type = tipType
     data.id = id;
     data.url = findUrl(data.url_id);
     data.retips = findRetips(id, data.url_id);
