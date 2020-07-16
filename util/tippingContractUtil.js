@@ -46,20 +46,22 @@ tippingContractUtil.getTipsRetips = (state) => {
         break;
       case 'DirectAeTip':
         data = tipData[0];
-        data.amount = tipData[1];
+        data.receiver = tipData[1];
+        data.amount = tipData[2];
         break;
       case 'DirectTokenTip':
         data = tipData[0];
-        data.token = tipData[1].token;
-        data.token_amount = tipData[1].amount;
+        data.receiver = tipData[1];
+        data.token = tipData[2].token;
+        data.token_amount = tipData[2].amount;
         break;
     }
 
     data.type = tipType
     data.id = id;
-    data.url = findUrl(data.url_id);
-    data.retips = findRetips(id, data.url_id);
-    data.claim = findClaimGen(data.claim_gen, data.url_id);
+    data.url = data.url ? findUrl(data.url_id) : null;
+    data.retips = data.url_id ? findRetips(id, data.url_id) : [];
+    data.claim = data.claim_gen && data.url_id ? findClaimGen(data.claim_gen, data.url_id) : null;
 
     data.token = data.token ? data.token : null;
     data.token_amount = data.token_amount ? data.token_amount : 0;
@@ -78,13 +80,13 @@ tippingContractUtil.getTipsRetips = (state) => {
     data.token_total_amount = Object.entries(token_total_amount)
       .map(([token, amount]) => ({token, amount}));
 
-    data.total_unclaimed_amount = new BigNumber(data.claim.unclaimed ? data.amount : 0).plus(data.retips.reduce((acc, retip) => {
+    data.total_unclaimed_amount = data.claim ? new BigNumber(data.claim.unclaimed ? data.amount : 0).plus(data.retips.reduce((acc, retip) => {
       return acc.plus(retip.claim.unclaimed ? retip.amount : 0)
-    }, new BigNumber('0'))).toFixed();
+    }, new BigNumber('0'))).toFixed() : '0';
 
-    data.total_claimed_amount = new BigNumber(data.claim.unclaimed ? 0 : data.amount).plus(data.retips.reduce((acc, retip) => {
+    data.total_claimed_amount = data.claim ? new BigNumber(data.claim.unclaimed ? 0 : data.amount).plus(data.retips.reduce((acc, retip) => {
       return acc.plus(retip.claim.unclaimed ? 0 : retip.amount)
-    }, new BigNumber('0'))).toFixed();
+    }, new BigNumber('0'))).toFixed() : '0';
 
     const token_total_unclaimed = data.retips.reduce((acc, retip) => {
       if (retip.token) acc[retip.token] = acc[retip.token]
