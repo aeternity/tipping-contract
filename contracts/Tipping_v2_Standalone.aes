@@ -38,14 +38,14 @@ contract FutureTippingContract =
 
 contract Tipping =
 
-  type tip_id        = int
-  type url_id        = int
-  type retip_id      = int
-  type url           = string
-  type claim_gen     = int
-  type amount        = int
-  type receiver      = address
-  type receiver_str  = string
+  type tip_id       = int
+  type url_id       = int
+  type retip_id     = int
+  type url          = string
+  type claim_gen    = int
+  type amount       = int
+  type receiver     = address
+  type receiver_str = string
 
   datatype tip
     = AeTip(tip_meta, url_id, amount, claim_gen)
@@ -136,7 +136,7 @@ contract Tipping =
     Chain.event(TipDirectReceived(Call.caller, Call.value, Address.to_str(receiver)))
     tip_id
 
-  payable stateful entrypoint tip_token_direct(receiver: receiver, title : string, token : TokenContract, token_amount : int) : int =
+  stateful entrypoint tip_token_direct(receiver: receiver, title : string, token : TokenContract, token_amount : int) : int =
     let tip_id = Map.size(state.tips)
     let tip_meta = { sender    = Call.caller
                    , title     = title
