@@ -88,12 +88,12 @@ tippingContractUtil.getTipsRetips = (state) => {
       return acc.plus(retip.claim.unclaimed ? 0 : retip.amount)
     }, new BigNumber('0'))).toFixed() : '0';
 
-    const token_total_unclaimed = data.retips.reduce((acc, retip) => {
+    const token_total_unclaimed = data.claim ? data.retips.reduce((acc, retip) => {
       if (retip.token) acc[retip.token] = acc[retip.token]
         ? acc[retip.token].plus(retip.claim.unclaimed ? retip.token_amount : 0)
         : new BigNumber(retip.claim.unclaimed ? retip.token_amount : 0)
       return acc;
-    }, data.token ? {[data.token]: new BigNumber(data.claim.unclaimed ? data.token_amount : 0)} : {});
+    }, data.token ? {[data.token]: new BigNumber(data.claim.unclaimed ? data.token_amount : 0)} : {}) : '0';
 
     data.token_total_unclaimed_amount = Object.entries(token_total_unclaimed)
       .map(([token, amount]) => ({token, amount}));
