@@ -14,13 +14,35 @@ contract Tipping =
   type retip_id = int
   type url = string
   type claim_gen = int
+  type amount = int
+  type receiver = address
+  type receiver_str = string
 
-  record tip = { sender : address, title : string, claim_gen : claim_gen, timestamp : int, url_id : url_id, token : option(TokenContract), amount : int, token_amount : int }
+  datatype tip
+    = AeTip(tip_meta, url_id, amount, claim_gen)
+    | TokenTip(tip_meta, url_id, tip_token_data, claim_gen)
+    | DirectAeTip(tip_meta, receiver, amount)
+    | DirectTokenTip(tip_meta, receiver, tip_token_data)
+
+  datatype event
+    = TipReceived(address, amount, url)
+    | ReTipReceived(address, amount, url)
+    | TipWithdrawn(address, amount, url)
+    | TipTokenReceived(address, amount, url, TokenContract)
+    | ReTipTokenReceived(address, amount, url, TokenContract)
+    | TipDirectReceived(address, amount, receiver_str)
+    | TipDirectTokenReceived(address, amount, receiver_str, TokenContract)
+
+  record tip_token_data = { token : TokenContract, amount : int }
+  record tip_meta = { sender : address, title : string, timestamp : int }
   record retip = { sender : address, amount : int, token_amount : int, claim_gen : claim_gen, token: option(TokenContract), tip_id : tip_id }
   record state = { urls : map(url, url_id), claims : map(url_id, claim_gen * int * map(TokenContract, int)), url_index : map(url_id, url), tips : map(tip_id, tip), retips : map(retip_id, retip), owner : address, oracle_service : OracleService }
 
   payable stateful entrypoint tip : (string, string) => int
   stateful entrypoint tip_token : (string, string, TokenContract, int) => int
+  payable stateful entrypoint tip_direct : (receiver, string) => int
+  stateful entrypoint tip_token_direct : (receiver, string, TokenContract, int) => int
+
   payable stateful entrypoint retip : (tip_id) => int
   stateful entrypoint retip_token : (tip_id, TokenContract, int) => int
   payable stateful entrypoint pre_claim : (string, address) => unit
