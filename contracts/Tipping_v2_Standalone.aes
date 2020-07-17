@@ -38,13 +38,14 @@ contract FutureTippingContract =
 
 contract Tipping =
 
-  type tip_id    = int
-  type url_id    = int
-  type retip_id  = int
-  type url       = string
-  type claim_gen = int
-  type amount    = int
-  type receiver    = address
+  type tip_id        = int
+  type url_id        = int
+  type retip_id      = int
+  type url           = string
+  type claim_gen     = int
+  type amount        = int
+  type receiver      = address
+  type receiver_str  = string
 
   datatype tip
     = AeTip(tip_meta, url_id, amount, claim_gen)
@@ -52,7 +53,7 @@ contract Tipping =
     | DirectAeTip(tip_meta, receiver, amount)
     | DirectTokenTip(tip_meta, receiver, tip_token_data)
 
-  record tip_token_data = { token : option(TokenContract)
+  record tip_token_data = { token : TokenContract
                           , amount : int }
 
   record tip_meta = { sender    : address
@@ -74,13 +75,14 @@ contract Tipping =
                  , owner          : address
                  , oracle_service : OracleService }
 
-  datatype event =
-    TipReceived(address, amount, url)
+  datatype event
+    = TipReceived(address, amount, url)
     | ReTipReceived(address, amount, url)
     | TipWithdrawn(address, amount, url)
     | TipTokenReceived(address, amount, url, TokenContract)
     | ReTipTokenReceived(address, amount, url, TokenContract)
-    | TipDirectReceived(address, amount, receiver)
+    | TipDirectReceived(address, amount, receiver_str)
+    | TipDirectTokenReceived(address, amount, receiver_str, TokenContract)
 
   entrypoint init(oracle_service : OracleService, owner : address) : state =
     { urls = {},
@@ -115,7 +117,7 @@ contract Tipping =
     let tip_meta = { sender    = Call.caller
                    , title     = title
                    , timestamp = Chain.timestamp }
-    let tip_token_data = { token  = Some(token)
+    let tip_token_data = { token  = token
                          , amount = token_amount }
     let updated_token_claims = token_claims{ [token = 0] @ previous_amount = previous_amount + token_amount }
     put(state{ tips[tip_id] = TokenTip(tip_meta, url_id, tip_token_data, last_claim_gen + 1),
@@ -130,8 +132,21 @@ contract Tipping =
                    , title     = title
                    , timestamp = Chain.timestamp }
     put(state{ tips[tip_id] = DirectAeTip(tip_meta, receiver, Call.value) })
-    Chain.event(TipDirectReceived(Call.caller, Call.value, receiver))
     Chain.spend(receiver, Call.value)
+    Chain.event(TipDirectReceived(Call.caller, Call.value, Address.to_str(receiver)))
+    tip_id
+
+  payable stateful entrypoint tip_token_direct(receiver: receiver, title : string, token : TokenContract, token_amount : int) : int =
+    let tip_id = Map.size(state.tips)
+    let tip_meta = { sender    = Call.caller
+                   , title     = title
+                   , timestamp = Chain.timestamp }
+    let tip_token_data = { token  = token
+                         , amount = token_amount }
+    put(state{ tips[tip_id] = DirectTokenTip(tip_meta, receiver, tip_token_data) })
+    token.transfer_allowance(Call.caller, Contract.address, token_amount)
+    token.transfer(receiver, token_amount)
+    Chain.event(TipDirectTokenReceived(Call.caller, token_amount, Address.to_str(receiver), token))
     tip_id
 
   payable stateful entrypoint retip(tip_id : tip_id) : int =
