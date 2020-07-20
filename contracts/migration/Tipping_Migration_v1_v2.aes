@@ -71,20 +71,27 @@ contract TippingV2BalanceReceiver =
 // 3. convert maps from v1 tip/retip/state records to v2 records
 // 4. manually migrate balance from v1 to v2 via migration_forward_balance
 payable contract TippingMigration =
-  type tip_id    = int
-  type url_id    = int
-  type retip_id  = int
-  type url       = string
-  type claim_gen = int
+  type tip_id       = int
+  type url_id       = int
+  type retip_id     = int
+  type url          = string
+  type claim_gen    = int
+  type amount       = int
+  type receiver     = address
+  type receiver_str = string
 
-  record tip = { sender       : address
-               , title        : string
-               , claim_gen    : claim_gen
-               , timestamp    : int
-               , url_id       : url_id
-               , token        : option(TokenContract)
-               , amount       : int
-               , token_amount : int }
+  datatype tip
+    = AeTip(tip_meta, url_id, amount, claim_gen)
+    | TokenTip(tip_meta, url_id, tip_token_data, claim_gen)
+    | DirectAeTip(tip_meta, receiver, amount)
+    | DirectTokenTip(tip_meta, receiver, tip_token_data)
+
+  record tip_token_data = { token : TokenContract
+                          , amount : int }
+
+  record tip_meta = { sender    : address
+                    , title     : string
+                    , timestamp : int }
 
   record retip = { sender       : address
                  , amount       : int
@@ -111,14 +118,9 @@ payable contract TippingMigration =
     { urls = tipping_v1_state.urls,
       claims = Map.from_list([ (url_id, (claim_gen, amount, {})) | (url_id, (claim_gen, amount)) <- Map.to_list(tipping_v1_state.claims) ]),
       url_index = tipping_v1_state.url_index,
-      tips = Map.from_list([ (url_id, { sender = tip.sender
-                                      , title = tip.title
-                                      , claim_gen = tip.claim_gen
-                                      , timestamp = tip.timestamp
-                                      , url_id = tip.url_id
-                                      , token = None
-                                      , amount = tip.amount
-                                      , token_amount = 0 }) | (url_id, tip) <- Map.to_list(tipping_v1_state.tips) ]),
+      tips = Map.from_list([ (url_id, AeTip({ sender = tip.sender, title = tip.title, timestamp = tip.timestamp }
+                                            , tip.url_id, tip.amount
+                                            , tip.claim_gen)) | (url_id, tip) <- Map.to_list(tipping_v1_state.tips) ]),
       retips = Map.from_list([ (url_id, { sender = retip.sender
                                         , amount = retip.amount
                                         , token_amount = 0

@@ -28,7 +28,7 @@ const config = {
     compilerUrl: 'http://localhost:3080'
 };
 
-describe.skip('Tipping Contract Migration V1 V2', () => {
+describe('Tipping Contract Migration V1 V2', () => {
     let client, contractV1, migrationContract, contractV2;
     let stateBeforeMigration, stateAfterMigration;
 

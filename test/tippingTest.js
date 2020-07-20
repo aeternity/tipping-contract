@@ -27,7 +27,7 @@ const config = {
     compilerUrl: 'http://localhost:3080'
 };
 
-describe('Tipping Contract', () => {
+describe.skip('Tipping Contract', () => {
     let client, contract, oracleServiceContract;
 
     before(async () => {
