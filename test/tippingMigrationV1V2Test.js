@@ -19,7 +19,7 @@ const TippingContractUtil = require('../util/tippingContractUtil');
 
 const TIPPING_CONTRACT = utils.readFileRelative('./contracts/migration/Tipping_v2.aes', 'utf-8');
 const TIPPING_CONTRACT_V1 = utils.readFileRelative('./contracts/migration/Tipping_v1.aes', 'utf-8');
-const TIPPING_MIGRATION_V1_V2 = utils.readFileRelative('./contracts/migration/Tipping_Migration_v1_v2.aes', 'utf-8');
+const TIPPING_MIGRATION_V1_V2 = utils.readFileRelative('./contracts/migration/Tipping_Balance_Migration_v1_v2.aes', 'utf-8');
 const MOCK_ORACLE_SERVICE_CONTRACT = utils.readFileRelative('./contracts/MockOracleService.aes', 'utf-8');
 
 const config = {
@@ -28,7 +28,7 @@ const config = {
     compilerUrl: 'http://localhost:3080'
 };
 
-describe.skip('Tipping Contract Migration V1 V2', () => {
+describe('Tipping Contract Migration V1 V2', () => {
     let client, contractV1, migrationContract, contractV2;
     let stateBeforeMigration, stateAfterMigration;
 
@@ -73,19 +73,16 @@ describe.skip('Tipping Contract Migration V1 V2', () => {
         assert.equal(stateBeforeMigration.urls.find(u => u.url === 'other.test').unclaimed_amount, 24);
     });
 
-    it('Deploying Tipping Migration Contract', async () => {
-        migrationContract = await client.getContractInstance(TIPPING_MIGRATION_V1_V2);
-        const init = await migrationContract.methods.init(contractV1.deployInfo.address);
-        assert.equal(init.result.returnType, 'ok');
-    });
-
     it('Deploying Tipping V2 Contract', async () => {
         contractV2 = await client.getContractInstance(TIPPING_CONTRACT);
-        const init = await contractV2.methods.init(migrationContract.deployInfo.address);
+        const init = await contractV2.methods.init(contractV1.deployInfo.address);
         assert.equal(init.result.returnType, 'ok');
     });
 
     it('Migrate Balance from V1 to V2', async () => {
+        migrationContract = await client.getContractInstance(TIPPING_MIGRATION_V1_V2);
+        await migrationContract.methods.init();
+
         const migrateBalance = await contractV1.methods.migrate_balance(migrationContract.deployInfo.address.replace('ct_', 'ak_'));
         assert.equal(migrateBalance.result.returnType, 'ok');
 

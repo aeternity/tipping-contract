@@ -36,21 +36,58 @@ contract OracleService =
 contract FutureTippingContract =
   payable stateful entrypoint receive_migrate_balance: () => unit
 
-contract TippingMigration =
+contract TippingV1 =
   type tip_id    = int
   type url_id    = int
   type retip_id  = int
   type url       = string
   type claim_gen = int
 
-  record tip = { sender       : address
-               , title        : string
-               , claim_gen    : claim_gen
-               , timestamp    : int
-               , url_id       : url_id
-               , token        : option(TokenContract)
-               , amount       : int
-               , token_amount : int }
+  record tip = { sender    : address
+               , title     : string
+               , claim_gen : claim_gen
+               , timestamp : int
+               , url_id    : url_id
+               , amount    : int }
+
+  record retip = { sender    : address
+                 , amount    : int
+                 , claim_gen : claim_gen
+                 , tip_id    : tip_id }
+
+  record state = { urls               : map(url, url_id)
+                 , claims             : map(url_id, claim_gen * int)
+                 , url_index          : map(url_id, url)
+                 , tips               : map(tip_id, tip)
+                 , retips             : map(retip_id, retip)
+                 , owner              : address
+                 , oracle_service     : OracleService }
+
+  stateful entrypoint get_state : () => state
+
+contract Tipping =
+
+  type tip_id       = int
+  type url_id       = int
+  type retip_id     = int
+  type url          = string
+  type claim_gen    = int
+  type amount       = int
+  type receiver     = address
+  type receiver_str = string
+
+  datatype tip
+    = AeTip(tip_meta, url_id, amount, claim_gen)
+    | TokenTip(tip_meta, url_id, tip_token_data, claim_gen)
+    | DirectAeTip(tip_meta, receiver, amount)
+    | DirectTokenTip(tip_meta, receiver, tip_token_data)
+
+  record tip_token_data = { token : TokenContract
+                          , amount : int }
+
+  record tip_meta = { sender    : address
+                    , title     : string
+                    , timestamp : int }
 
   record retip = { sender       : address
                  , amount       : int
@@ -59,35 +96,39 @@ contract TippingMigration =
                  , token        : option(TokenContract)
                  , tip_id       : tip_id }
 
-  record state_migration = { urls           : map(url, url_id)
-                           , claims         : map(url_id, claim_gen * int * map(TokenContract, int))
-                           , url_index      : map(url_id, url)
-                           , tips           : map(tip_id, tip)
-                           , retips         : map(retip_id, retip)
-                           , owner          : address
-                           , oracle_service : OracleService }
+  record state = { urls           : map(url, url_id)
+                 , claims         : map(url_id, claim_gen * int * map(TokenContract, int))
+                 , url_index      : map(url_id, url)
+                 , tips           : map(tip_id, tip)
+                 , retips         : map(retip_id, retip)
+                 , owner          : address
+                 , oracle_service : OracleService }
 
-  stateful entrypoint migrate_state : () => state_migration
+  datatype event
+    = TipReceived(address, amount, url)
+    | ReTipReceived(address, amount, url)
+    | TipWithdrawn(address, amount, url)
+    | TipTokenReceived(address, amount, url, TokenContract)
+    | ReTipTokenReceived(address, amount, url, TokenContract)
+    | TipDirectReceived(address, amount, receiver_str)
+    | TipDirectTokenReceived(address, amount, receiver_str, TokenContract)
 
-contract Tipping =
-  type tip_id    = TippingMigration.tip_id
-  type url_id    = TippingMigration.url_id
-  type retip_id  = TippingMigration.retip_id
-  type url       = TippingMigration.url
-  type claim_gen = TippingMigration.claim_gen
-  type tip       = TippingMigration.tip
-  type retip     = TippingMigration.retip
-  type state     = TippingMigration.state_migration
-
-  datatype event =
-    TipReceived(address, int, url)
-    | ReTipReceived(address, int, url)
-    | TipWithdrawn(address, int, url)
-    | TipTokenReceived(address, int, url, TokenContract)
-    | ReTipTokenReceived(address, int, url, TokenContract)
-
-  entrypoint init(tipping_migration : TippingMigration) : state =
-    tipping_migration.migrate_state()
+  entrypoint init(tipping_v1 : TippingV1) : state =
+    let tipping_v1_state = tipping_v1.get_state()
+    { urls = tipping_v1_state.urls,
+      claims = Map.from_list([ (url_id, (claim_gen, amount, {})) | (url_id, (claim_gen, amount)) <- Map.to_list(tipping_v1_state.claims) ]),
+      url_index = tipping_v1_state.url_index,
+      tips = Map.from_list([ (url_id, AeTip({ sender = tip.sender, title = tip.title, timestamp = tip.timestamp }
+                                            , tip.url_id, tip.amount
+                                            , tip.claim_gen)) | (url_id, tip) <- Map.to_list(tipping_v1_state.tips) ]),
+      retips = Map.from_list([ (url_id, { sender = retip.sender
+                                        , amount = retip.amount
+                                        , token_amount = 0
+                                        , claim_gen = retip.claim_gen
+                                        , token = None
+                                        , tip_id = retip.tip_id }) | (url_id, retip) <- Map.to_list(tipping_v1_state.retips) ]),
+      owner = tipping_v1_state.owner,
+      oracle_service = tipping_v1_state.oracle_service }
 
   stateful entrypoint change_oracle_service(oracle_service : OracleService) =
     require_owner()
@@ -97,15 +138,10 @@ contract Tipping =
     let url_id = get_url_id(url)
     let (last_claim_gen, amount, token_claims) = state.claims[url_id = (0, 0, {})]
     let tip_id = Map.size(state.tips)
-    let tip = { sender       = Call.caller
-              , title        = title
-              , claim_gen    = last_claim_gen + 1
-              , timestamp    = Chain.timestamp
-              , url_id       = url_id
-              , token        = None
-              , token_amount = 0
-              , amount       = Call.value }
-    put(state{ tips[tip_id] = tip,
+    let tip_meta = { sender    = Call.caller
+                   , title     = title
+                   , timestamp = Chain.timestamp }
+    put(state{ tips[tip_id] = AeTip(tip_meta, url_id, Call.value, last_claim_gen + 1),
                claims[url_id] = (last_claim_gen, amount + Call.value, token_claims) })
     Chain.event(TipReceived(Call.caller, Call.value, url))
     tip_id
@@ -115,25 +151,45 @@ contract Tipping =
     let url_id = get_url_id(url)
     let (last_claim_gen, amount, token_claims) = state.claims[url_id = (0, 0, {})]
     let tip_id = Map.size(state.tips)
-    let tip = { sender       = Call.caller
-              , title        = title
-              , claim_gen    = last_claim_gen + 1
-              , timestamp    = Chain.timestamp
-              , url_id       = url_id
-              , token        = Some(token)
-              , amount       = 0
-              , token_amount = token_amount }
+    let tip_meta = { sender    = Call.caller
+                   , title     = title
+                   , timestamp = Chain.timestamp }
+    let tip_token_data = { token  = token
+                         , amount = token_amount }
     let updated_token_claims = token_claims{ [token = 0] @ previous_amount = previous_amount + token_amount }
-    put(state{ tips[tip_id] = tip,
+    put(state{ tips[tip_id] = TokenTip(tip_meta, url_id, tip_token_data, last_claim_gen + 1),
                claims[url_id] = (last_claim_gen, amount, updated_token_claims) })
     token.transfer_allowance(Call.caller, Contract.address, token_amount)
     Chain.event(TipTokenReceived(Call.caller, token_amount, url, token))
     tip_id
 
+  payable stateful entrypoint tip_direct(receiver: receiver, title : string) : int =
+    let tip_id = Map.size(state.tips)
+    let tip_meta = { sender    = Call.caller
+                   , title     = title
+                   , timestamp = Chain.timestamp }
+    put(state{ tips[tip_id] = DirectAeTip(tip_meta, receiver, Call.value) })
+    Chain.spend(receiver, Call.value)
+    Chain.event(TipDirectReceived(Call.caller, Call.value, Address.to_str(receiver)))
+    tip_id
+
+  stateful entrypoint tip_token_direct(receiver: receiver, title : string, token : TokenContract, token_amount : int) : int =
+    let tip_id = Map.size(state.tips)
+    let tip_meta = { sender    = Call.caller
+                   , title     = title
+                   , timestamp = Chain.timestamp }
+    let tip_token_data = { token  = token
+                         , amount = token_amount }
+    put(state{ tips[tip_id] = DirectTokenTip(tip_meta, receiver, tip_token_data) })
+    token.transfer_allowance(Call.caller, Contract.address, token_amount)
+    token.transfer(receiver, token_amount)
+    Chain.event(TipDirectTokenReceived(Call.caller, token_amount, Address.to_str(receiver), token))
+    tip_id
+
   payable stateful entrypoint retip(tip_id : tip_id) : int =
     require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
-    let tip = state.tips[tip_id]
-    let (last_claim_gen, amount, token_claims) = state.claims[tip.url_id]
+    let Some(url_id) = tip_url_id(state.tips[tip_id])
+    let (last_claim_gen, amount, token_claims) = state.claims[url_id]
     let retip_id = Map.size(state.retips)
     let retip = { sender       = Call.caller
                 , claim_gen    = last_claim_gen + 1
@@ -142,15 +198,15 @@ contract Tipping =
                 , token        = None
                 , tip_id       = tip_id }
     put(state{ retips[retip_id] = retip,
-               claims[tip.url_id] = (last_claim_gen, amount + Call.value, token_claims) })
-    Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[tip.url_id]))
+               claims[url_id] = (last_claim_gen, amount + Call.value, token_claims) })
+    Chain.event(ReTipReceived(Call.caller, Call.value, state.url_index[url_id]))
     retip_id
 
   // if allowance is not created before or to little this will fail with NON_NEGATIVE_VALUE_REQUIRED
   stateful entrypoint retip_token(tip_id : tip_id, token : TokenContract, token_amount : int) : int =
     require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
-    let tip = state.tips[tip_id]
-    let (last_claim_gen, amount, token_claims) = state.claims[tip.url_id]
+    let Some(url_id) = tip_url_id(state.tips[tip_id])
+    let (last_claim_gen, amount, token_claims) = state.claims[url_id]
     let retip_id = Map.size(state.retips)
     let retip = { sender       = Call.caller
                 , claim_gen    = last_claim_gen + 1
@@ -160,9 +216,9 @@ contract Tipping =
                 , tip_id       = tip_id }
     let updated_token_claims = token_claims{ [token = 0] @ previous_amount = previous_amount + token_amount }
     put(state{ retips[retip_id] = retip,
-               claims[tip.url_id] = (last_claim_gen, amount, updated_token_claims) })
+               claims[url_id] = (last_claim_gen, amount, updated_token_claims) })
     token.transfer_allowance(Call.caller, Contract.address, token_amount)
-    Chain.event(ReTipTokenReceived(Call.caller, token_amount, state.url_index[tip.url_id], token))
+    Chain.event(ReTipTokenReceived(Call.caller, token_amount, state.url_index[url_id], token))
     retip_id
 
   payable stateful entrypoint pre_claim(url : string, expected_account : address) =
@@ -192,7 +248,7 @@ contract Tipping =
   entrypoint tips_for_url(url : string) : list(tip) =
     require(Map.member(url, state.urls), "URL_NOT_EXISTING")
     let url_id = state.urls[url]
-    [ t | (_, t) <- Map.to_list(state.tips), if (t.url_id == url_id)]
+    [ t | (_, t) <- Map.to_list(state.tips), if (is_url_id(tip_url_id(t), url_id))]
 
   entrypoint retips_for_tip(tip_id : tip_id) : list(retip) =
     require(Map.member(tip_id, state.tips), "TIP_NOT_EXISTING")
@@ -224,3 +280,14 @@ contract Tipping =
     let checked_claim = state.oracle_service.check_persist_claim(url, account, recheck)
     require(checked_claim.success, "ORACLE_SERVICE_CHECK_CLAIM_NOT_SUCCESSFULL")
     require(checked_claim.account == account, "ORACLE_SERVICE_CHECK_CLAIM_ADDRESS_NOT_MATCHING")
+
+  function
+    tip_url_id : tip => option(url_id)
+    tip_url_id(AeTip(_, url_id, _, _)) = Some(url_id)
+    tip_url_id(TokenTip(_, url_id, _, _)) = Some(url_id)
+    tip_url_id(_) = None
+
+  function
+    is_url_id : (option(url_id), url_id) => bool
+    is_url_id(Some(option_url_id), url_id) = option_url_id == url_id
+    is_url_id(None, url_id) = false
