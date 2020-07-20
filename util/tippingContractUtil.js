@@ -57,10 +57,14 @@ tippingContractUtil.getTipsRetips = (state) => {
         data.token_amount = tipData[2].amount;
         data.amount = 0;
         break;
+      default:
+        data = tipTypeData; // Fallback for old contract state format
+        break;
     }
 
-    data.type = tipType
+    data.type = data.type ? data.type : 'AeTip';
     data.id = id;
+
     const hasClaim = data.claim_gen !== undefined && data.url_id !== undefined;
     data.url = hasClaim ? findUrl(data.url_id) : null;
     data.retips = hasClaim ? findRetips(id, data.url_id) : [];
