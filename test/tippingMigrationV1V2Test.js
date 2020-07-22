@@ -19,7 +19,6 @@ const TippingContractUtil = require('../util/tippingContractUtil');
 
 const TIPPING_CONTRACT = utils.readFileRelative('./contracts/migration/Tipping_v2.aes', 'utf-8');
 const TIPPING_CONTRACT_V1 = utils.readFileRelative('./contracts/migration/Tipping_v1.aes', 'utf-8');
-const TIPPING_MIGRATION_V1_V2 = utils.readFileRelative('./contracts/migration/Tipping_Balance_Migration_v1_v2.aes', 'utf-8');
 const MOCK_ORACLE_SERVICE_CONTRACT = utils.readFileRelative('./contracts/MockOracleService.aes', 'utf-8');
 
 const config = {
@@ -77,17 +76,6 @@ describe('Tipping Contract Migration V1 V2', () => {
         contractV2 = await client.getContractInstance(TIPPING_CONTRACT);
         const init = await contractV2.methods.init(contractV1.deployInfo.address);
         assert.equal(init.result.returnType, 'ok');
-    });
-
-    it('Migrate Balance from V1 to V2', async () => {
-        migrationContract = await client.getContractInstance(TIPPING_MIGRATION_V1_V2);
-        await migrationContract.methods.init();
-
-        const migrateBalance = await contractV1.methods.migrate_balance(migrationContract.deployInfo.address.replace('ct_', 'ak_'));
-        assert.equal(migrateBalance.result.returnType, 'ok');
-
-        const migrationForwardBalance = await migrationContract.methods.migration_forward_balance(contractV2.deployInfo.address)
-        assert.equal(migrationForwardBalance.result.returnType, 'ok');
     });
 
     it('Check V2 State after Migration', async () => {
