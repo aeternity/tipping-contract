@@ -23,6 +23,7 @@ const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
 const TIPPING_CONTRACT = readFileRelative('./contracts/migration/Tipping_v2.aes', 'utf-8');
+const FUNGIBLE_TOKEN_CONTRACT = readFileRelative('./contracts/FungibleToken.aes', 'utf-8');
 const TIPPING_CONTRACT_V1 = readFileRelative('./contracts/migration/Tipping_v1.aes', 'utf-8');
 const MOCK_ORACLE_SERVICE_CONTRACT = readFileRelative('./contracts/MockOracleService.aes', 'utf-8');
 
@@ -102,4 +103,40 @@ describe('Tipping Contract Migration V1 V2', () => {
         })
         assert.deepEqual(stateAfterMigration, stateBeforeMigration);
     });
+
+    it('Generate State in V2 Contract', async () => {
+        await contractV2.methods.tip('domain.test', 'Hello World', {amount: 1});
+        await contractV2.methods.retip(0, {amount: 2});
+        await contractV2.methods.claim('domain.test', wallets[1].publicKey, false);
+
+        await contractV2.methods.tip('domain.test', 'Other Test', {amount: 4});
+
+        await contractV2.methods.tip('other.test', 'Just another Test', {amount: 8});
+        await contractV2.methods.retip(2, {amount: 16});
+
+        stateBeforeMigration = TippingContractUtil.getTipsRetips((await contractV2.methods.get_state()).decodedResult);
+        assert.equal(stateBeforeMigration.urls.find(u => u.url === 'domain.test').unclaimed_amount, 4);
+        assert.equal(stateBeforeMigration.urls.find(u => u.url === 'other.test').unclaimed_amount, 24);
+
+        const tip = await contractV2.methods.tip_direct(wallets[3].publicKey, 'Hello World', {amount : 10000});
+        assert.equal(tip.decodedResult, 6);
+
+        const state1 = TippingContractUtil.getTipsRetips((await contractV2.methods.get_state()).decodedResult);
+        assert.equal(state1.tips.find(t => t.id === 6).amount, "10000");
+        assert.lengthOf(state1.tips, 7);
+
+        tokenContract = await client.getContractInstance(FUNGIBLE_TOKEN_CONTRACT);
+        const init = await tokenContract.methods.init('AE Test Token', 0, 'AET', 1000);
+        assert.equal(init.result.returnType, 'ok');
+
+        const tippingAddress = contractV2.deployInfo.address.replace('ct_', 'ak_');
+
+        await tokenContract.methods.create_allowance(tippingAddress, 333);
+        await contractV2.methods.tip_token_direct(wallets[3].publicKey, 'Hello World', tokenContract.deployInfo.address, 333);
+        const state2 = TippingContractUtil.getTipsRetips((await contractV2.methods.get_state()).decodedResult);
+        assert.equal(state2.tips.find(t => t.id === 7).token_amount, "333");
+        assert.lengthOf(state2.tips, 8);
+    });
+
+    // TODO claim in V1 and V2 check amounts and forbidden cross-claim
 });
