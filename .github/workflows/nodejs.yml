@@ -19,4 +19,4 @@ jobs:
       - run: npm install -g aeproject
       - run: npm install
       - run: aeproject env
-      - run: aeproject test
+      - run: npm test
