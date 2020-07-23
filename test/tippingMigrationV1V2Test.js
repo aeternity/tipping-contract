@@ -15,7 +15,7 @@
  *  PERFORMANCE OF THIS SOFTWARE.
  */
 
-const assert = require('assert')
+const assert = require('chai').assert
 const {readFileRelative} = require('aeproject-utils/utils/fs-utils');
 const {defaultWallets: wallets} = require('aeproject-config/config/node-config.json');
 
@@ -33,7 +33,7 @@ const config = {
 };
 
 describe('Tipping Contract Migration V1 V2', () => {
-    let client, contractV1, migrationContract, contractV2;
+    let client, contractV1, contractV2;
     let stateBeforeMigration, stateAfterMigration;
 
     before(async () => {
@@ -63,14 +63,14 @@ describe('Tipping Contract Migration V1 V2', () => {
     });
 
     it('Generate Sample State in V1 Contract', async () => {
-        await contractV1.methods.tip('domain.test', 'Hello World', {amount : 1});
-        await contractV1.methods.retip(0, {amount : 2});
+        await contractV1.methods.tip('domain.test', 'Hello World', {amount: 1});
+        await contractV1.methods.retip(0, {amount: 2});
         await contractV1.methods.claim('domain.test', wallets[1].publicKey, false);
 
-        await contractV1.methods.tip('domain.test', 'Other Test', {amount : 4});
+        await contractV1.methods.tip('domain.test', 'Other Test', {amount: 4});
 
-        await contractV1.methods.tip('other.test', 'Just another Test', {amount : 8});
-        await contractV1.methods.retip(2, {amount : 16});
+        await contractV1.methods.tip('other.test', 'Just another Test', {amount: 8});
+        await contractV1.methods.retip(2, {amount: 16});
 
         stateBeforeMigration = TippingContractUtil.getTipsRetips((await contractV1.methods.get_state()).decodedResult);
         assert.equal(stateBeforeMigration.urls.find(u => u.url === 'domain.test').unclaimed_amount, 4);
@@ -85,6 +85,21 @@ describe('Tipping Contract Migration V1 V2', () => {
 
     it('Check V2 State after Migration', async () => {
         stateAfterMigration = TippingContractUtil.getTipsRetips((await contractV2.methods.get_state()).decodedResult);
+
+        // expect claim information to have been omitted from state
+        stateBeforeMigration.tips.forEach(tip => {
+            tip.claim_gen = null
+            tip.claim = null
+            tip.total_claimed_amount = '0'
+            tip.total_unclaimed_amount = '0'
+            tip.retips.forEach(retip => {
+                retip.claim_gen = null
+                retip.claim = null
+            })
+        })
+        stateBeforeMigration.urls.forEach(url => {
+            url.unclaimed_amount = 0
+        })
         assert.deepEqual(stateAfterMigration, stateBeforeMigration);
     });
 });

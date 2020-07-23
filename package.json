@@ -17,7 +17,7 @@
     "aeproject-lib": "^2.2.0",
     "bignumber.js": "^9.0.0",
     "esm": "^3.2.25",
-    "assert": "^2.0.0"
+    "chai": "^4.2.0"
   },
   "devDependencies": {
     "mocha": "^8.0.1"
