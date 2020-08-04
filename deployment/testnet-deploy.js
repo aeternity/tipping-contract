@@ -2,7 +2,7 @@ const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
 const fs = require('fs');
 const path = require('path');
 const MOCK_ORACLE_CONTRACT = fs.readFileSync(path.join(__dirname, '../contracts/MockOracleService.aes'), 'utf-8');
-const TIPPING_CONTRACT = fs.readFileSync(path.join(__dirname, '../contracts/Tipping_v2_Standalone.aes'), 'utf-8');
+const TIPPING_CONTRACT = fs.readFileSync(path.join(__dirname, '../contracts/Tipping_v2.aes'), 'utf-8');
 
 const keypair = {
   secretKey: "",
