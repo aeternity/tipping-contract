@@ -21,8 +21,8 @@ const {defaultWallets: wallets} = require('aeproject-config/config/node-config.j
 const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
-const TIPPING_CONTRACT = readFileRelative('./contracts/Tipping_v2_Standalone.aes', 'utf-8');
-const TIPPING_INTERFACE = readFileRelative('./contracts/TippingInterface.aes', 'utf-8');
+const TIPPING_CONTRACT = readFileRelative('./contracts/v2/Tipping_v2.aes', 'utf-8');
+const TIPPING_INTERFACE = readFileRelative('./contracts/v2/Tipping_v2_Interface.aes', 'utf-8');
 const MOCK_ORACLE_SERVICE_CONTRACT = readFileRelative('./contracts/MockOracleService.aes', 'utf-8');
 
 const config = {
@@ -31,7 +31,7 @@ const config = {
     compilerUrl: 'http://localhost:3080'
 };
 
-describe('Tipping Contract', () => {
+describe('Tipping V2 Contract', () => {
     let client, contract, oracleServiceContract;
 
     before(async () => {
@@ -147,34 +147,9 @@ describe('Tipping Contract', () => {
         assert.equal(parseInt(balanceAfter) + 53, parseInt(balanceAfterSecond));
     });
 
-    it('Tipping Contract: change oracle service', async () => {
-        const state1 = (await contract.methods.get_state()).decodedResult;
-        assert.equal(state1.oracle_service, oracleServiceContract.deployInfo.address);
-
-        oracleServiceContract = await client.getContractInstance(MOCK_ORACLE_SERVICE_CONTRACT);
-        await oracleServiceContract.methods.init();
-
-        const claim = await contract.methods.change_oracle_service(oracleServiceContract.deployInfo.address);
-        assert.equal(claim.result.returnType, 'ok');
-
-        const state2 = (await contract.methods.get_state()).decodedResult;
-        assert.equal(state2.oracle_service, oracleServiceContract.deployInfo.address)
-    });
-
-    it('Tipping Contract: migrate balance', async () => {
-        const futureContract = await client.getContractInstance(TIPPING_CONTRACT);
-        const init = await futureContract.methods.init(oracleServiceContract.deployInfo.address, wallets[0].publicKey);
-        assert.equal(init.result.returnType, 'ok');
-
-        const claim = await contract.methods.migrate_balance(futureContract.deployInfo.address);
-        assert.equal(claim.result.returnType, 'ok');
-
-        assert.equal(await client.balance(contract.deployInfo.address), 0);
-    });
-
     it('Tipping Contract Interface', async () => {
         const interface = await client.getContractInstance(TIPPING_INTERFACE, {contractAddress: contract.deployInfo.address});
-        const state = (await interface.methods.get_state()).decodedResult;
-        assert.equal(state.owner, wallets[0].publicKey);
+        const state = await interface.methods.get_state();
+        assert.equal(state.result.returnType, 'ok');
     });
 });

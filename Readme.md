@@ -3,7 +3,7 @@
 ## Util Example
 
 ```javascript
-const TIPPING_INTERFACE = fs.readFileSync('./contracts/TippingInterface.aes', 'utf-8');
+const TIPPING_INTERFACE = fs.readFileSync('./contracts/Tipping_v2_Interface.aes', 'utf-8');
 const TippingContractUtil = require('./util/tippingContractUtil');
 
 ...

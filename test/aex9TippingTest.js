@@ -21,7 +21,7 @@ const {defaultWallets: wallets} = require('aeproject-config/config/node-config.j
 const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
-const TIPPING_CONTRACT = readFileRelative('./contracts/Tipping_v2_Standalone.aes', 'utf-8');
+const TIPPING_CONTRACT = readFileRelative('./contracts/v2/Tipping_v2.aes', 'utf-8');
 const FUNGIBLE_TOKEN_CONTRACT = readFileRelative('./contracts/FungibleToken.aes', 'utf-8');
 const MOCK_ORACLE_SERVICE_CONTRACT = readFileRelative('./contracts/MockOracleService.aes', 'utf-8');
 
