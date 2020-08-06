@@ -107,6 +107,15 @@ describe('Tipping Contract Migration V1 V2', () => {
         assert.equal(state.urls.find(u => u.url === 'other.test').unclaimed_amount, 24);
     });
 
-    // TODO aggregate v1 and v2 state with utils
+    it('Aggregate V1 and V2 state', async () => {
+        const state = TippingContractUtil.getTipsRetips((await contractV1.methods.get_state()).decodedResult, (await contractV2.methods.get_state()).decodedResult);
+        assert.equal(state.urls.find(u => u.url === 'domain.test').unclaimed_amount, 8);
+        assert.equal(state.urls.find(u => u.url === 'other.test').unclaimed_amount, 48);
+        assert.equal(state.urls.find(u => u.url === 'domain.test').token_unclaimed_amount, {
+            "token": tokenContract.deployInfo.address,
+            "amount": String(555 + 444)
+        });
+    });
+
     // TODO util to claim on correct v1 or v2 contract
 });

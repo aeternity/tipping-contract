@@ -2,7 +2,58 @@ const BigNumber = require('bignumber.js');
 
 const tippingContractUtil = {};
 
-tippingContractUtil.getTipsRetips = (state) => {
+tippingContractUtil.getTipsRetips = (...states) => {
+
+  // not very performant layering of reduces
+  return states.reduce((acc, cur) => {
+    const aggregation = aggregateState(cur);
+    acc.urls = aggregation.urls.reduce((accUrls, curUrl) => {
+      let returnUrls = [];
+      const accHasCurUrl = accUrls.find(a => a.url === curUrl.url);
+
+      if (accHasCurUrl) {
+        returnUrls = returnUrls.filter(a => a.url !== curUrl.url);
+
+        returnUrls.push({
+          url: curUrl.url,
+          tip_ids: accHasCurUrl.tip_ids.concat(curUrl.tip_ids),
+          retip_ids: accHasCurUrl.retip_ids.concat(curUrl.retip_ids),
+          unclaimed_amount: new BigNumber(accHasCurUrl.unclaimed_amount).plus(curUrl.unclaimed_amount).toFixed(),
+          token_unclaimed_amount: accHasCurUrl.token_unclaimed_amount.concat(curUrl.token_unclaimed_amount)
+            .reduce((accToken, curToken) => {
+              const hasToken = accToken.find(a => a.token === curToken.token)
+              if (hasToken) {
+                accToken = accToken.filter(a => a.token !== curToken.token);
+                accToken.push({
+                  token: curToken.token,
+                  amount: new BigNumber(hasToken.amount).plus(curToken.amount).toFixed()
+                })
+              } else {
+                accToken.push(curToken);
+              }
+
+              return accToken;
+            }, [])
+        })
+      } else {
+        returnUrls = accUrls;
+        returnUrls.push(curUrl);
+      }
+
+      return returnUrls;
+    }, acc.urls);
+
+    // TODO adjust duplicate ids?
+
+    acc.tips = acc.tips.concat(aggregation.tips);
+    return acc;
+  }, {
+    urls: [],
+    tips: []
+  });
+};
+
+const aggregateState = (state) => {
   const findUrl = (urlId) => state.urls.find(([_, id]) => urlId === id)[0];
 
   const findClaimGen = (tipClaimGen, urlId) => {
@@ -17,7 +68,7 @@ tippingContractUtil.getTipsRetips = (state) => {
       unclaimed_amount: data[1],
       token_unclaimed_amount: data[2] ? data[2].map(unclaimed_token => ({
         token: unclaimed_token[0],
-        amount: unclaimed_token[1]
+        amount: new BigNumber(unclaimed_token[1]).toFixed()
       })) : []
     };
   };
@@ -139,9 +190,9 @@ tippingContractUtil.getTipsRetips = (state) => {
 
 tippingContractUtil.claimableAmount = (state, url) => {
   const urlIdFind = state.decodedResult.urls.find(([u, _]) => url === u);
-  if(!urlIdFind || !urlIdFind.length) throw new Error("Url not found");
+  if (!urlIdFind || !urlIdFind.length) throw new Error("Url not found");
   const urlId = urlIdFind[1];
-  const claimFind = state.decodedResult.claims.find(([id, _ ]) => urlId === id);
+  const claimFind = state.decodedResult.claims.find(([id, _]) => urlId === id);
   return claimFind.length ? claimFind[1][1] : 0;
 };
 
