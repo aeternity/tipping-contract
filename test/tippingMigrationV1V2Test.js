@@ -23,7 +23,9 @@ const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
 const TIPPING_CONTRACT_V1 = readFileRelative('./contracts/v1/Tipping_v1.aes', 'utf-8');
+const TIPPING_CONTRACT_V2 = readFileRelative('./contracts/v2/Tipping_v2.aes', 'utf-8');
 const MOCK_ORACLE_SERVICE_CONTRACT = readFileRelative('./contracts/MockOracleService.aes', 'utf-8');
+const FUNGIBLE_TOKEN_CONTRACT = readFileRelative('./contracts/FungibleToken.aes', 'utf-8');
 
 const config = {
     url: 'http://localhost:3001/',
@@ -32,7 +34,7 @@ const config = {
 };
 
 describe('Tipping Contract Migration V1 V2', () => {
-    let client, contractV1, contractV2;
+    let client, contractV1, contractV2, tippingAddress;
 
     before(async () => {
         client = await Universal({
@@ -48,17 +50,21 @@ describe('Tipping Contract Migration V1 V2', () => {
         });
     });
 
-    it('Deploying Tipping MockOracleService Contract', async () => {
+    it('Deploy Contracts', async () => {
         oracleServiceContract = await client.getContractInstance(MOCK_ORACLE_SERVICE_CONTRACT);
-        const init = await oracleServiceContract.methods.init();
-        assert.equal(init.result.returnType, 'ok');
+        await oracleServiceContract.methods.init();
+
+        tokenContract = await client.getContractInstance(FUNGIBLE_TOKEN_CONTRACT);
+        await tokenContract.methods.init('AE Test Token', 0, 'AET', 10000);
+
+        contractV1 = await client.getContractInstance(TIPPING_CONTRACT_V1);
+        await contractV1.methods.init(oracleServiceContract.deployInfo.address, wallets[0].publicKey);
+
+        contractV2 = await client.getContractInstance(TIPPING_CONTRACT_V2);
+        await contractV2.methods.init(oracleServiceContract.deployInfo.address, wallets[0].publicKey);
+        tippingAddress = contractV2.deployInfo.address.replace('ct_', 'ak_');
     });
 
-    it('Deploying Tipping V1 Contract', async () => {
-        contractV1 = await client.getContractInstance(TIPPING_CONTRACT_V1);
-        const init = await contractV1.methods.init(oracleServiceContract.deployInfo.address, wallets[0].publicKey);
-        assert.equal(init.result.returnType, 'ok');
-    });
 
     it('Generate Sample State in V1 Contract', async () => {
         await contractV1.methods.tip('domain.test', 'Hello World', {amount: 1});
@@ -75,7 +81,32 @@ describe('Tipping Contract Migration V1 V2', () => {
         assert.equal(state.urls.find(u => u.url === 'other.test').unclaimed_amount, 24);
     });
 
-    // TODO deploy v2 and generate state
+    it('Generate Sample State in V2 Contract', async () => {
+        await contractV2.methods.tip('domain.test', 'Hello World', {amount: 1});
+        await contractV2.methods.retip(0, {amount: 2});
+        await contractV2.methods.claim('domain.test', wallets[1].publicKey, false);
+
+        await contractV2.methods.tip('domain.test', 'Other Test', {amount: 4});
+
+        await contractV2.methods.tip('other.test', 'Just another Test', {amount: 8});
+        await contractV2.methods.retip(2, {amount: 16});
+
+        await tokenContract.methods.create_allowance(tippingAddress, 444);
+        await contractV2.methods.tip_token('domain.test', 'Hello World Token', tokenContract.deployInfo.address, 444);
+
+        await tokenContract.methods.change_allowance(tippingAddress, 555);
+        await contractV2.methods.retip_token(2, tokenContract.deployInfo.address, 555);
+
+        await contractV2.methods.tip_direct(wallets[3].publicKey, 'Hello World Direct', {amount : 10000});
+
+        await tokenContract.methods.change_allowance(tippingAddress, 333);
+        await contractV2.methods.tip_token_direct(wallets[3].publicKey, 'Hello World Direct Token', tokenContract.deployInfo.address, 333);
+
+        const state = TippingContractUtil.getTipsRetips((await contractV2.methods.get_state()).decodedResult);
+        assert.equal(state.urls.find(u => u.url === 'domain.test').unclaimed_amount, 4);
+        assert.equal(state.urls.find(u => u.url === 'other.test').unclaimed_amount, 24);
+    });
+
     // TODO aggregate v1 and v2 state with utils
     // TODO util to claim on correct v1 or v2 contract
 });
