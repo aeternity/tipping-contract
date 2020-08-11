@@ -4,15 +4,15 @@ const tippingContractUtil = {};
 
 tippingContractUtil.getTipsRetips = (...states) => {
 
-  // not very performant layering of reduces
+  // not very performant nesting of reduces
   return states.reduce((acc, cur) => {
-    const aggregation = aggregateState(cur);
+    const aggregation = aggregateState(cur.decodedResult || cur, cur.result && cur.result.contractId);
     acc.urls = aggregation.urls.reduce((accUrls, curUrl) => {
       let returnUrls = [];
       const accHasCurUrl = accUrls.find(a => a.url === curUrl.url);
 
       if (accHasCurUrl) {
-        returnUrls = returnUrls.filter(a => a.url !== curUrl.url);
+        returnUrls = returnUrls.filter(a => a.url !== curUrl.url); // TODO bug here? existing url vanishes if again occurring
 
         returnUrls.push({
           url: curUrl.url,
@@ -53,7 +53,8 @@ tippingContractUtil.getTipsRetips = (...states) => {
   });
 };
 
-const aggregateState = (state) => {
+const aggregateState = (state, idSuffix) => {
+  idSuffix = idSuffix ? `_${idSuffix}` : ""; // TODO suffix ids with suffix
   const findUrl = (urlId) => state.urls.find(([_, id]) => urlId === id)[0];
 
   const findClaimGen = (tipClaimGen, urlId) => {
