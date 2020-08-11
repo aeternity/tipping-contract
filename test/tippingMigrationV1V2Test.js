@@ -108,9 +108,9 @@ describe('Tipping Contract Migration V1 V2', () => {
     });
 
     it('Aggregate V1 and V2 state', async () => {
-        const state = TippingContractUtil.getTipsRetips((await contractV1.methods.get_state()).decodedResult, (await contractV2.methods.get_state()).decodedResult);
+        const state = TippingContractUtil.getTipsRetips(await contractV1.methods.get_state(), await contractV2.methods.get_state());
         assert.equal(state.urls.find(u => u.url === 'domain.test').unclaimed_amount, 8);
-        assert.equal(state.urls.find(u => u.url === 'other.test').unclaimed_amount, 48);
+        assert.equal(state.urls.find(u => u.url === 'other.test').unclaimed_amount, 48); //TODO why does this fail?
         assert.equal(state.urls.find(u => u.url === 'domain.test').token_unclaimed_amount, {
             "token": tokenContract.deployInfo.address,
             "amount": String(555 + 444)
