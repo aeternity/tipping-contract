@@ -42,8 +42,6 @@ tippingContractUtil.getTipsRetips = (...states) => {
       return returnUrls;
     }, acc.urls);
 
-    // TODO adjust duplicate ids?
-
     acc.tips = acc.tips.concat(aggregation.tips);
     return acc;
   }, {
@@ -52,8 +50,7 @@ tippingContractUtil.getTipsRetips = (...states) => {
   });
 };
 
-const aggregateState = (state, idSuffix) => {
-  idSuffix = idSuffix ? `_${idSuffix}` : ""; // TODO suffix ids with suffix
+const aggregateState = (state, contractId) => {
   const findUrl = (urlId) => state.urls.find(([_, id]) => urlId === id)[0];
 
   const findClaimGen = (tipClaimGen, urlId) => {
@@ -119,6 +116,7 @@ const aggregateState = (state, idSuffix) => {
 
     data.type = data.type ? data.type : 'AeTip';
     data.id = id;
+    data.contractId = contractId;
 
     data.url = data.url_id !== undefined ? findUrl(data.url_id) : null;
     data.retips = data.url_id !== undefined ? findRetips(id, data.url_id) : [];

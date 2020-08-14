@@ -97,7 +97,7 @@ describe('Tipping Contract Migration V1 V2', () => {
         await tokenContract.methods.change_allowance(tippingAddress, 555);
         await contractV2.methods.retip_token(0, tokenContract.deployInfo.address, 555);
 
-        await contractV2.methods.tip_direct(wallets[3].publicKey, 'Hello World Direct', {amount : 10000});
+        await contractV2.methods.tip_direct(wallets[3].publicKey, 'Hello World Direct', {amount: 10000});
 
         await tokenContract.methods.change_allowance(tippingAddress, 333);
         await contractV2.methods.tip_token_direct(wallets[3].publicKey, 'Hello World Direct Token', tokenContract.deployInfo.address, 333);
@@ -110,11 +110,16 @@ describe('Tipping Contract Migration V1 V2', () => {
     it('Aggregate V1 and V2 state', async () => {
         const state = TippingContractUtil.getTipsRetips(await contractV1.methods.get_state(), await contractV2.methods.get_state());
         assert.equal(state.urls.find(u => u.url === 'domain.test').unclaimed_amount, 8);
-        assert.equal(state.urls.find(u => u.url === 'other.test').unclaimed_amount, 48); //TODO why does this fail?
+        assert.equal(state.urls.find(u => u.url === 'other.test').unclaimed_amount, 48);
         assert.deepEqual(state.urls.find(u => u.url === 'domain.test').token_unclaimed_amount, [{
             "token": tokenContract.deployInfo.address,
             "amount": String(555 + 444)
         }]);
+
+        assert.lengthOf(state.tips, 9);
+        assert.lengthOf(state.tips.filter(t => t.id === 0), 2);
+        assert.lengthOf(state.tips.filter(t => t.id === 0 && t.contractId === contractV1.deployInfo.address), 1);
+        assert.lengthOf(state.tips.filter(t => t.id === 0 && t.contractId === contractV2.deployInfo.address), 1);
     });
 
     // TODO util to claim on correct v1 or v2 contract
