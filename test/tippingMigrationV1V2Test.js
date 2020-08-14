@@ -95,7 +95,7 @@ describe('Tipping Contract Migration V1 V2', () => {
         await contractV2.methods.tip_token('domain.test', 'Hello World Token', tokenContract.deployInfo.address, 444);
 
         await tokenContract.methods.change_allowance(tippingAddress, 555);
-        await contractV2.methods.retip_token(2, tokenContract.deployInfo.address, 555);
+        await contractV2.methods.retip_token(0, tokenContract.deployInfo.address, 555);
 
         await contractV2.methods.tip_direct(wallets[3].publicKey, 'Hello World Direct', {amount : 10000});
 
@@ -111,10 +111,10 @@ describe('Tipping Contract Migration V1 V2', () => {
         const state = TippingContractUtil.getTipsRetips(await contractV1.methods.get_state(), await contractV2.methods.get_state());
         assert.equal(state.urls.find(u => u.url === 'domain.test').unclaimed_amount, 8);
         assert.equal(state.urls.find(u => u.url === 'other.test').unclaimed_amount, 48); //TODO why does this fail?
-        assert.equal(state.urls.find(u => u.url === 'domain.test').token_unclaimed_amount, {
+        assert.deepEqual(state.urls.find(u => u.url === 'domain.test').token_unclaimed_amount, [{
             "token": tokenContract.deployInfo.address,
             "amount": String(555 + 444)
-        });
+        }]);
     });
 
     // TODO util to claim on correct v1 or v2 contract
