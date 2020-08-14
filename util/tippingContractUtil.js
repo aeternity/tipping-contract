@@ -8,12 +8,12 @@ tippingContractUtil.getTipsRetips = (...states) => {
   return states.reduce((acc, cur) => {
     const aggregation = aggregateState(cur.decodedResult || cur, cur.result && cur.result.contractId);
     acc.urls = aggregation.urls.reduce((accUrls, curUrl) => {
-      let returnUrls = [];
+      let returnUrls = accUrls;
       const accHasCurUrl = accUrls.find(a => a.url === curUrl.url);
 
+      // if has url in accumulator, filter it out and replace with updated values, otherwise just add to accumulator
       if (accHasCurUrl) {
-        returnUrls = returnUrls.filter(a => a.url !== curUrl.url); // TODO bug here? existing url vanishes if again occurring
-
+        returnUrls = returnUrls.filter(a => a.url !== curUrl.url);
         returnUrls.push({
           url: curUrl.url,
           tip_ids: accHasCurUrl.tip_ids.concat(curUrl.tip_ids),
@@ -36,7 +36,6 @@ tippingContractUtil.getTipsRetips = (...states) => {
             }, [])
         })
       } else {
-        returnUrls = accUrls;
         returnUrls.push(curUrl);
       }
 
@@ -175,10 +174,10 @@ const aggregateState = (state, idSuffix) => {
       retip_ids: urlTips.flatMap(tip => tip.retips.map(retip => retip.id)),
 
       // map is [url_id, [claim_gen, amount, [token, token_amount]]]
-      unclaimed_amount: claim ? claim[1][1] : 0,
+      unclaimed_amount: claim ? String(claim[1][1]) : "0",
       token_unclaimed_amount: claim && claim[1][2] ? claim[1][2].map(unclaimed_token => ({
         token: unclaimed_token[0],
-        amount: unclaimed_token[1]
+        amount: String(unclaimed_token[1])
       })) : []
     };
   });
