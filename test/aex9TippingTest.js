@@ -149,8 +149,8 @@ describe('AEX9 Tipping Contract', () => {
 
         assert.equal(state.urls.find(u => u.url === 'domain.test').unclaimed_amount, 0);
         assert.deepEqual(state.urls.find(u => u.url === 'domain.test').token_unclaimed_amount.sort((a, b) => b.amount - a.amount), [
-            {token: tokenContract2.deployInfo.address, amount: 123456},
-            {token: tokenContract1.deployInfo.address, amount: 123}
+            {token: tokenContract2.deployInfo.address, amount: "123456"},
+            {token: tokenContract1.deployInfo.address, amount: "123"}
         ]);
 
         assert.equal(state.urls.find(u => u.url === 'other.test').unclaimed_amount, 100);
