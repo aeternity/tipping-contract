@@ -2,11 +2,14 @@ const BigNumber = require('bignumber.js');
 
 const tippingContractUtil = {};
 
-tippingContractUtil.getTipsRetips = (...states) => {
+tippingContractUtil.getTipsRetips = (versionMapping, ...states) => {
+  if (typeof versionMapping !== 'object' || !Object.values(versionMapping).every(v => typeof v === 'string' && v.match(/v[1-9]/))) throw Error("passed versionMapping must be object, mapping contractId to vX");
+  if (!Array.isArray(states) || (Array.isArray(states) && states.length === 0)) throw Error("states must be passed as additional arguments");
 
   // not very performant nesting of reduces
   return states.reduce((acc, cur) => {
-    const aggregation = aggregateState(cur.decodedResult || cur, cur.result && cur.result.contractId);
+    if (!cur.result || !cur.decodedResult) throw Error("full returned tx state must be passed");
+    const aggregation = aggregateState(cur, versionMapping);
     acc.urls = aggregation.urls.reduce((accUrls, curUrl) => {
       let returnUrls = accUrls;
       const accHasCurUrl = accUrls.find(a => a.url === curUrl.url);
@@ -50,7 +53,10 @@ tippingContractUtil.getTipsRetips = (...states) => {
   });
 };
 
-const aggregateState = (state, contractId) => {
+const aggregateState = (returnState, versionMapping) => {
+  const state = returnState.decodedResult;
+  const contractId = returnState.result.contractId;
+  const suffix = `_${versionMapping[contractId]}`
   const findUrl = (urlId) => state.urls.find(([_, id]) => urlId === id)[0];
 
   const findClaimGen = (tipClaimGen, urlId) => {
@@ -71,7 +77,8 @@ const aggregateState = (state, contractId) => {
   };
 
   const findRetips = (tipId, urlId) => state.retips.filter(([_, data]) => data.tip_id === tipId).map(([id, data]) => {
-    data.id = id;
+    data.id = id + suffix;
+    data.tip_id = data.tip_id + suffix;
     data.claim_gen = data.claim_gen === "None" || data.claim_gen === undefined ? null : data.claim_gen;
     data.claim = findClaimGen(data.claim_gen, urlId);
     data.token = data.token ? data.token : null;
@@ -115,7 +122,7 @@ const aggregateState = (state, contractId) => {
     }
 
     data.type = data.type ? data.type : 'AeTip';
-    data.id = id;
+    data.id = id + suffix;
     data.contractId = contractId;
 
     data.url = data.url_id !== undefined ? findUrl(data.url_id) : null;
