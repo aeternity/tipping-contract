@@ -75,8 +75,8 @@ describe('Direct Tipping Contract', () => {
         assert.equal(tip.result.returnType, 'ok');
         assert.equal(tip.decodedResult, 0);
 
-        const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
-        assert.equal(state.tips.find(t => t.id === 0).amount, "10000");
+        const state = TippingContractUtil.getTipsRetips({[contract.deployInfo.address]: "v2"}, await contract.methods.get_state());
+        assert.equal(state.tips.find(t => t.id === "0_v2").amount, "10000");
         assert.lengthOf(state.tips, 1);
 
         const balanceAfter = await client.getBalance(wallets[3].publicKey);
@@ -93,8 +93,8 @@ describe('Direct Tipping Contract', () => {
         const balanceAdmin = await tokenContract.methods.balance(wallets[0].publicKey)
         assert.equal(balanceAdmin.decodedResult, 1000 - 333);
 
-        const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
-        assert.equal(state.tips.find(t => t.id === 1).token_amount, "333");
+        const state = TippingContractUtil.getTipsRetips({[contract.deployInfo.address]: "v2"}, await contract.methods.get_state());
+        assert.equal(state.tips.find(t => t.id === "1_v2").token_amount, "333");
         assert.lengthOf(state.tips, 2);
     });
 });

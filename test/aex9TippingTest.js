@@ -145,7 +145,7 @@ describe('AEX9 Tipping Contract', () => {
 
         await contract.methods.tip('other.test', 'Hello World', {amount : 100});
 
-        const state = TippingContractUtil.getTipsRetips((await contract.methods.get_state()).decodedResult);
+        const state = TippingContractUtil.getTipsRetips({[contract.deployInfo.address]: "v2"}, await contract.methods.get_state());
 
         assert.equal(state.urls.find(u => u.url === 'domain.test').unclaimed_amount, 0);
         assert.deepEqual(state.urls.find(u => u.url === 'domain.test').token_unclaimed_amount.sort((a, b) => b.amount - a.amount), [
