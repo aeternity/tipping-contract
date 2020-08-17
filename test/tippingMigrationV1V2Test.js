@@ -76,7 +76,7 @@ describe('Tipping Contract Migration V1 V2', () => {
         await contractV1.methods.tip('other.test', 'Just another Test', {amount: 8});
         await contractV1.methods.retip(2, {amount: 16});
 
-        const state = TippingContractUtil.getTipsRetips((await contractV1.methods.get_state()).decodedResult);
+        const state = TippingContractUtil.getTipsRetips({[contractV1.deployInfo.address]: "v1"}, await contractV1.methods.get_state());
         assert.equal(state.urls.find(u => u.url === 'domain.test').unclaimed_amount, 4);
         assert.equal(state.urls.find(u => u.url === 'other.test').unclaimed_amount, 24);
     });
@@ -102,13 +102,17 @@ describe('Tipping Contract Migration V1 V2', () => {
         await tokenContract.methods.change_allowance(tippingAddress, 333);
         await contractV2.methods.tip_token_direct(wallets[3].publicKey, 'Hello World Direct Token', tokenContract.deployInfo.address, 333);
 
-        const state = TippingContractUtil.getTipsRetips((await contractV2.methods.get_state()).decodedResult);
+        const state = TippingContractUtil.getTipsRetips({[contractV2.deployInfo.address]: "v2"}, await contractV2.methods.get_state());
         assert.equal(state.urls.find(u => u.url === 'domain.test').unclaimed_amount, 4);
         assert.equal(state.urls.find(u => u.url === 'other.test').unclaimed_amount, 24);
     });
 
     it('Aggregate V1 and V2 state', async () => {
-        const state = TippingContractUtil.getTipsRetips(await contractV1.methods.get_state(), await contractV2.methods.get_state());
+        const versionMapping = {
+            [contractV1.deployInfo.address]: "v1",
+            [contractV2.deployInfo.address]: "v2",
+        }
+        const state = TippingContractUtil.getTipsRetips(versionMapping, await contractV1.methods.get_state(), await contractV2.methods.get_state());
         assert.equal(state.urls.find(u => u.url === 'domain.test').unclaimed_amount, 8);
         assert.equal(state.urls.find(u => u.url === 'other.test').unclaimed_amount, 48);
         assert.deepEqual(state.urls.find(u => u.url === 'domain.test').token_unclaimed_amount, [{
@@ -117,10 +121,10 @@ describe('Tipping Contract Migration V1 V2', () => {
         }]);
 
         assert.lengthOf(state.tips, 9);
-        assert.lengthOf(state.tips.filter(t => t.id === 0), 2);
-        assert.lengthOf(state.tips.filter(t => t.id === 0 && t.contractId === contractV1.deployInfo.address), 1);
-        assert.lengthOf(state.tips.filter(t => t.id === 0 && t.contractId === contractV2.deployInfo.address), 1);
+        assert.lengthOf(state.tips.filter(t => t.id.startsWith("0")), 2);
+        assert.lengthOf(state.tips.filter(t => t.id.startsWith("0") && t.contractId === contractV1.deployInfo.address), 1);
+        assert.lengthOf(state.tips.filter(t => t.id.startsWith("0") && t.contractId === contractV2.deployInfo.address), 1);
+        assert.lengthOf(state.tips.filter(t => t.id === "0_v1" && t.contractId === contractV1.deployInfo.address), 1);
+        assert.lengthOf(state.tips.filter(t => t.id === "0_v2" && t.contractId === contractV2.deployInfo.address), 1);
     });
-
-    // TODO util to claim on correct v1 or v2 contract
 });
