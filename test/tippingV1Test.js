@@ -70,7 +70,7 @@ describe('Tipping V1 Contract', () => {
     const otherDomainTip = await contract.methods.tip('other.test', 'Just another Test', {amount : 100});
     assert.equal(otherDomainTip.result.returnType, 'ok');
 
-    const state = TippingContractUtil.getTipsRetips({[contract.deployInfo.address]: "v1"}, await contract.methods.get_state());
+    const state = TippingContractUtil.getTipsRetips(await contract.methods.get_state());
     assert.lengthOf(state.tips, 3);
     assert.lengthOf(state.urls, 2);
     assert.equal(state.tips.find(t => t.id === "0_v1").total_unclaimed_amount, "100");
@@ -90,7 +90,7 @@ describe('Tipping V1 Contract', () => {
     const retipOtherTitle = await contract.methods.retip(1, {amount : 77});
     assert.equal(retipOtherTitle.result.returnType, 'ok');
 
-    const state = TippingContractUtil.getTipsRetips({[contract.deployInfo.address]: "v1"}, await contract.methods.get_state());
+    const state = TippingContractUtil.getTipsRetips(await contract.methods.get_state());
     assert.lengthOf(state.tips.find(t => t.id === "0_v1").retips, 1);
     assert.equal(state.tips.find(t => t.id === "0_v1").retips[0].amount, 77);
     assert.lengthOf(state.tips.find(t => t.id === "1_v1").retips, 1);
@@ -122,7 +122,7 @@ describe('Tipping V1 Contract', () => {
     const balanceAfter = await client.balance(wallets[1].publicKey);
     assert.strictEqual(parseInt(balanceBefore) + 100 + 100 + 77 + 77, parseInt(balanceAfter));
 
-    const state1 = TippingContractUtil.getTipsRetips({[contract.deployInfo.address]: "v1"}, await contract.methods.get_state());
+    const state1 = TippingContractUtil.getTipsRetips(await contract.methods.get_state());
     assert.equal(state1.tips.find(t => t.id === "0_v1").total_unclaimed_amount, "0");
     assert.equal(state1.tips.find(t => t.id === "1_v1").total_unclaimed_amount, "0");
     assert.equal(state1.tips.find(t => t.id === "2_v1").total_unclaimed_amount, "100");
@@ -132,7 +132,7 @@ describe('Tipping V1 Contract', () => {
     assert.include(zeroClaim.decodedError, 'NO_ZERO_AMOUNT_PAYOUT');
 
     await contract.methods.retip(0, {amount : 53});
-    const state2 = TippingContractUtil.getTipsRetips({[contract.deployInfo.address]: "v1"}, await contract.methods.get_state());
+    const state2 = TippingContractUtil.getTipsRetips(await contract.methods.get_state());
     assert.equal(state2.tips.find(t => t.id === "0_v1").total_unclaimed_amount, "53");
     assert.equal(state2.urls.find(u => u.url === 'domain.test').unclaimed_amount, 53);
     assert.equal((await contract.methods.unclaimed_for_url('domain.test')).decodedResult, 53);

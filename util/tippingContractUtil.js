@@ -2,14 +2,13 @@ const BigNumber = require('bignumber.js');
 
 const tippingContractUtil = {};
 
-tippingContractUtil.getTipsRetips = (versionMapping, ...states) => {
-  if (typeof versionMapping !== 'object' || !Object.values(versionMapping).every(v => typeof v === 'string' && v.match(/v[1-9]/))) throw Error("passed versionMapping must be object, mapping contractId to vX");
+tippingContractUtil.getTipsRetips = (...states) => {
   if (!Array.isArray(states) || (Array.isArray(states) && states.length === 0)) throw Error("states must be passed as additional arguments");
 
   // not very performant nesting of reduces
   return states.reduce((acc, cur) => {
     if (!cur.result || !cur.decodedResult) throw Error("full returned tx state must be passed");
-    const aggregation = aggregateState(cur, versionMapping);
+    const aggregation = aggregateState(cur);
     acc.urls = aggregation.urls.reduce((accUrls, curUrl) => {
       let returnUrls = accUrls;
       const accHasCurUrl = accUrls.find(a => a.url === curUrl.url);
@@ -53,10 +52,9 @@ tippingContractUtil.getTipsRetips = (versionMapping, ...states) => {
   });
 };
 
-const aggregateState = (returnState, versionMapping) => {
+const aggregateState = (returnState) => {
   const state = returnState.decodedResult;
-  const contractId = returnState.result.contractId;
-  const suffix = `_${versionMapping[contractId]}`
+  const suffix = `_${state.version || "v1"}`
   const findUrl = (urlId) => state.urls.find(([_, id]) => urlId === id)[0];
 
   const findClaimGen = (tipClaimGen, urlId) => {
@@ -123,7 +121,7 @@ const aggregateState = (returnState, versionMapping) => {
 
     data.type = data.type ? data.type : 'AeTip';
     data.id = id + suffix;
-    data.contractId = contractId;
+    data.contractId = returnState.result.contractId;
 
     data.url = data.url_id !== undefined ? findUrl(data.url_id) : null;
     data.retips = data.url_id !== undefined ? findRetips(id, data.url_id) : [];
