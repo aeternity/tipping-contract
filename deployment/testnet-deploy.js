@@ -1,8 +1,8 @@
 const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
 const fs = require('fs');
 const path = require('path');
-const MOCK_ORACLE_CONTRACT = fs.readFileSync(path.join(__dirname, '../contracts/MockOracleService.aes'), 'utf-8');
-const TIPPING_CONTRACT = fs.readFileSync(path.join(__dirname, '../contracts/Tipping_v2.aes'), 'utf-8');
+const TIPPING_V1_CONTRACT = fs.readFileSync(path.join(__dirname, '../contracts/v1/Tipping_v1.aes'), 'utf-8');
+const TIPPING_V2_CONTRACT = fs.readFileSync(path.join(__dirname, '../contracts/v2/Tipping_v2.aes'), 'utf-8');
 
 const keypair = {
   secretKey: "",
@@ -29,12 +29,15 @@ const getClient = async () => {
 
 const deploy = async () => {
   const client = await getClient();
-  const oracleContract = await client.getContractInstance(MOCK_ORACLE_CONTRACT);
-  await oracleContract.methods.init();
+  const oracleContractAddress = ""
 
-  const contract = await client.getContractInstance(TIPPING_CONTRACT);
-  const init = await contract.methods.init(oracleContract.deployInfo.address, keypair.publicKey);
-  console.log(init);
+  const contractV1 = await client.getContractInstance(TIPPING_V1_CONTRACT);
+  await contractV1.methods.init(oracleContractAddress, keypair.publicKey);
+  console.log("v1", contractV1.deployInfo.address);
+
+  const contractV2 = await client.getContractInstance(TIPPING_V2_CONTRACT);
+  await contractV2.methods.init(oracleContractAddress);
+  console.log("v2", contractV2.deployInfo.address);
 };
 
 deploy();
