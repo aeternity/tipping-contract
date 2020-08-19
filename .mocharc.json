@@ -1,0 +1,5 @@
+{
+    "spec": "test/**/*.js",
+    "exit": true,
+    "timeout": 0
+}

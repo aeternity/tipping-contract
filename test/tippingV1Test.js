@@ -164,7 +164,7 @@ describe('Tipping V1 Contract', () => {
 
   });
 
-  it('Deploying Tipping Contract', async () => {
+  it('Tipping Contract Interface Check', async () => {
     const interface = await client.getContractInstance(TIPPING_INTERFACE, {contractAddress: contract.deployInfo.address});
     const state = (await interface.methods.get_state()).decodedResult;
     assert.equal(state.owner, wallets[0].publicKey);

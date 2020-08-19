@@ -10,13 +10,12 @@ tippingContractUtil.getTipsRetips = (...states) => {
     if (!cur.result || !cur.decodedResult) throw Error("full returned tx state must be passed");
     const aggregation = aggregateState(cur);
     acc.urls = aggregation.urls.reduce((accUrls, curUrl) => {
-      let returnUrls = accUrls;
       const accHasCurUrl = accUrls.find(a => a.url === curUrl.url);
 
       // if has url in accumulator, filter it out and replace with updated values, otherwise just add to accumulator
       if (accHasCurUrl) {
-        returnUrls = returnUrls.filter(a => a.url !== curUrl.url);
-        returnUrls.push({
+        accUrls = accUrls.filter(a => a.url !== curUrl.url);
+        accUrls.push({
           url: curUrl.url,
           tip_ids: accHasCurUrl.tip_ids.concat(curUrl.tip_ids),
           retip_ids: accHasCurUrl.retip_ids.concat(curUrl.retip_ids),
@@ -38,10 +37,10 @@ tippingContractUtil.getTipsRetips = (...states) => {
             }, [])
         })
       } else {
-        returnUrls.push(curUrl);
+        accUrls.push(curUrl);
       }
 
-      return returnUrls;
+      return accUrls;
     }, acc.urls);
 
     acc.tips = acc.tips.concat(aggregation.tips);
@@ -77,7 +76,7 @@ const aggregateState = (returnState) => {
   const findRetips = (tipId, urlId) => state.retips.filter(([_, data]) => data.tip_id === tipId).map(([id, data]) => {
     data.id = id + suffix;
     data.tip_id = data.tip_id + suffix;
-    data.claim_gen = data.claim_gen === "None" || data.claim_gen === undefined ? null : data.claim_gen;
+    data.claim_gen = data.claim_gen === undefined ? null : data.claim_gen;
     data.claim = findClaimGen(data.claim_gen, urlId);
     data.token = data.token ? data.token : null;
     data.token_amount = data.token_amount ? data.token_amount : 0;
