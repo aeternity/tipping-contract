@@ -6,29 +6,26 @@ tippingContractUtil.getTipsRetips = (...states) => {
   if (!Array.isArray(states) || (Array.isArray(states) && states.length === 0)) throw Error("states must be passed as additional arguments");
 
   // not very performant nesting of reduces
-  return states.reduce((acc, cur) => {
+  const aggregatedStates = states.reduce((acc, cur) => {
     if (!cur.result || !cur.decodedResult) throw Error("full returned tx state must be passed");
     const aggregation = aggregateState(cur);
     acc.urls = aggregation.urls.reduce((accUrls, curUrl) => {
-      const accHasCurUrl = accUrls.find(a => a.url === curUrl.url);
-
-      // if has url in accumulator, filter it out and replace with updated values, otherwise just add to accumulator
-      if (accHasCurUrl) {
-        accUrls = accUrls.filter(a => a.url !== curUrl.url);
-        accUrls.push({
-          url: curUrl.url,
-          tip_ids: accHasCurUrl.tip_ids.concat(curUrl.tip_ids),
-          retip_ids: accHasCurUrl.retip_ids.concat(curUrl.retip_ids),
-          unclaimed_amount: new BigNumber(accHasCurUrl.unclaimed_amount).plus(curUrl.unclaimed_amount).toFixed(),
-          token_unclaimed_amount: Object.entries(accHasCurUrl.token_unclaimed_amount.concat(curUrl.token_unclaimed_amount)
-            .reduce((accToken, curToken) => {
-              var oldAmount = accToken[curToken.token] ? accToken[curToken.token].amount : 0;
-              accToken[curToken.token] = new BigNumber(oldAmount).plus(curToken.amount).toFixed();
-              return accToken;
-            }, {})).map(([token, amount]) => ({token, amount}))
-        })
+      // if has url in accumulator, replace with updated values, otherwise just add to accumulator
+      if (accUrls[curUrl.url]) {
+        accUrls[curUrl.url] = {
+            url: curUrl.url,
+            tip_ids: accUrls[curUrl.url].tip_ids.concat(curUrl.tip_ids),
+            retip_ids: accUrls[curUrl.url].retip_ids.concat(curUrl.retip_ids),
+            unclaimed_amount: new BigNumber(accUrls[curUrl.url].unclaimed_amount).plus(curUrl.unclaimed_amount).toFixed(),
+            token_unclaimed_amount: Object.entries(accUrls[curUrl.url].token_unclaimed_amount.concat(curUrl.token_unclaimed_amount)
+              .reduce((accToken, curToken) => {
+                var oldAmount = accToken[curToken.token] ? accToken[curToken.token].amount : 0;
+                accToken[curToken.token] = new BigNumber(oldAmount).plus(curToken.amount).toFixed();
+                return accToken;
+              }, {})).map(([token, amount]) => ({token, amount}))
+          }
       } else {
-        accUrls.push(curUrl);
+        accUrls[curUrl.url] = curUrl;
       }
 
       return accUrls;
@@ -37,9 +34,12 @@ tippingContractUtil.getTipsRetips = (...states) => {
     acc.tips = acc.tips.concat(aggregation.tips);
     return acc;
   }, {
-    urls: [],
+    urls: {},
     tips: []
   });
+
+  aggregatedStates.urls = Object.values(aggregatedStates.urls);
+  return aggregatedStates;
 };
 
 const aggregateState = (returnState) => {
