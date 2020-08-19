@@ -20,21 +20,12 @@ tippingContractUtil.getTipsRetips = (...states) => {
           tip_ids: accHasCurUrl.tip_ids.concat(curUrl.tip_ids),
           retip_ids: accHasCurUrl.retip_ids.concat(curUrl.retip_ids),
           unclaimed_amount: new BigNumber(accHasCurUrl.unclaimed_amount).plus(curUrl.unclaimed_amount).toFixed(),
-          token_unclaimed_amount: accHasCurUrl.token_unclaimed_amount.concat(curUrl.token_unclaimed_amount)
+          token_unclaimed_amount: Object.entries(accHasCurUrl.token_unclaimed_amount.concat(curUrl.token_unclaimed_amount)
             .reduce((accToken, curToken) => {
-              const hasToken = accToken.find(a => a.token === curToken.token)
-              if (hasToken) {
-                accToken = accToken.filter(a => a.token !== curToken.token);
-                accToken.push({
-                  token: curToken.token,
-                  amount: new BigNumber(hasToken.amount).plus(curToken.amount).toFixed()
-                })
-              } else {
-                accToken.push(curToken);
-              }
-
+              var oldAmount = accToken[curToken.token] ? accToken[curToken.token].amount : 0;
+              accToken[curToken.token] = new BigNumber(oldAmount).plus(curToken.amount).toFixed();
               return accToken;
-            }, [])
+            }, {})).map(([token, amount]) => ({token, amount}))
         })
       } else {
         accUrls.push(curUrl);
