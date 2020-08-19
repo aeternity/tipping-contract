@@ -10,15 +10,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aeternity/aepp-sdk": "^7.5.0",
+    "@aeternity/aepp-sdk": "^7.6.0",
     "aeproject-config": "^2.2.0",
-    "aeproject-utils": "^2.2.0",
     "aeproject-lib": "^2.2.0",
+    "aeproject-utils": "^2.2.0",
     "bignumber.js": "^9.0.0",
-    "esm": "^3.2.25",
-    "chai": "^4.2.0"
+    "chai": "^4.2.0",
+    "esm": "^3.2.25"
   },
   "devDependencies": {
-    "mocha": "^8.0.1"
+    "mocha": "^8.1.1"
   }
 }
