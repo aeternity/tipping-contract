@@ -4,8 +4,7 @@
   "description": "This is the default package.json generated for your project",
   "main": "index.js",
   "scripts": {
-    "test": "mocha ./test/**/*.js --timeout 0 --exit",
-    "aetest": "aeproject test",
+    "test": "mocha",
     "postinstall": "node .scripts/postinstall.js"
   },
   "author": "",
