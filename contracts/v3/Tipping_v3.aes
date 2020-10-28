@@ -1,0 +1,69 @@
+// ISC License
+//
+// Copyright (c) 2020, aeternity developers
+//
+// Permission to use, copy, modify, and/or distribute this software for any
+// purpose with or without fee is hereby granted, provided that the above
+// copyright notice and this permission notice appear in all copies.
+//
+// THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+// REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+// AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+// INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+// LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
+// OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+// PERFORMANCE OF THIS SOFTWARE.
+
+
+// THIS IS NOT SECURITY AUDITED
+// DO NEVER USE THIS WITHOUT SECURITY AUDIT FIRST
+
+@compiler >= 4.2
+
+contract Tipping =
+
+  type tip_id = int
+
+  datatype tip = PostWithoutTip(tip_meta, list(string))
+
+  record tip_meta = { sender    : address
+                    , title     : string
+                    , timestamp : int }
+
+
+  record state = { tips           : map(tip_id, tip)
+                 , version        : string }
+
+  datatype event = PostWithoutTipReceived(address, string)
+
+  entrypoint init() : state =
+    { tips = {},
+      version = "v3" }
+
+  stateful entrypoint post_without_tip_sig(title : string, media : list(string), author : address, sig : signature) : int =
+     let msg = String.blake2b(concat(title, media))
+     require(Crypto.verify_sig(msg, author, sig), "SIGNATURE_HAS_TO_MATCH_AUTHOR")
+     save_post(title, media, author)
+
+  stateful entrypoint post_without_tip(title : string, media : list(string)) : int =
+     save_post(title, media, Call.caller)
+
+  // GETTER FUNCTIONS
+
+  entrypoint get_state() : state = state
+
+  // INTERNAL FUNCTIONS
+
+  function concat(acc : string, remaining : list(string)) : string =
+    switch(remaining)
+      [] => acc
+      s :: ss => concat(String.concat(acc, s), ss)
+
+  stateful function save_post(title : string, media : list(string), author : address) : int =
+    let tip_id = Map.size(state.tips)
+    let tip_meta = { sender    = author
+                   , title     = title
+                   , timestamp = Chain.timestamp }
+    put(state{ tips[tip_id] = PostWithoutTip(tip_meta, media) })
+    Chain.event(PostWithoutTipReceived(author, title))
+    tip_id
