@@ -10,11 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aeternity/aepp-sdk": "^7.6.0",
+    "@aeternity/aepp-sdk": "^7.7.0",
     "aeproject-config": "^2.2.0",
     "aeproject-lib": "^2.2.0",
     "aeproject-utils": "^2.2.0",
-    "bignumber.js": "^9.0.0",
+    "bignumber.js": "^9.0.1",
     "chai": "^4.2.0",
     "esm": "^3.2.25"
   },

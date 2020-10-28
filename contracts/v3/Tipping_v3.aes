@@ -41,7 +41,7 @@ contract Tipping =
       version = "v3" }
 
   stateful entrypoint post_without_tip_sig(title : string, media : list(string), author : address, sig : signature) : int =
-     let msg = String.blake2b(concat(title, media))
+     let msg = Crypto.blake2b(prefix_message_hashed(concat(title, media)))
      require(Crypto.verify_sig(msg, author, sig), "SIGNATURE_HAS_TO_MATCH_AUTHOR")
      save_post(title, media, author)
 
@@ -58,6 +58,12 @@ contract Tipping =
     switch(remaining)
       [] => acc
       s :: ss => concat(String.concat(acc, s), ss)
+
+  function prefix_message_hashed(msg : string) : bytes(60) =
+    let hash = Crypto.blake2b(msg)
+    // equals aeternity Signed Message:\n with fixed length bytes for message
+    let prefixBytes : bytes(28) = #1a61657465726e697479205369676e6564204d6573736167653a0a20
+    Bytes.concat(prefixBytes, hash)
 
   stateful function save_post(title : string, media : list(string), author : address) : int =
     let tip_id = Map.size(state.tips)
