@@ -104,12 +104,17 @@ const aggregateState = (returnState) => {
         data.token_amount = tipData[2].amount;
         data.amount = 0;
         break;
+      case 'PostWithoutTip':
+        data = tipData[0];
+        data.media = tipData[1];
+        data.amount = 0;
+        break;
       default:
         data = tipTypeData; // Fallback for old contract state format
         break;
     }
 
-    data.type = data.type ? data.type : 'AeTip';
+    data.type = tipType ? tipType : 'AeTip';
     data.id = id + suffix;
     data.contractId = returnState.result.contractId;
 
@@ -157,7 +162,7 @@ const aggregateState = (returnState) => {
     return data;
   });
 
-  const urls = state.urls.map(([url, id]) => {
+  const urls = state.urls ? state.urls.map(([url, id]) => {
     const urlTips = tips.filter(tip => tip.url_id === id);
     const claim = state.claims.find(([urlId, _]) => urlId === id);
 
@@ -173,7 +178,7 @@ const aggregateState = (returnState) => {
         amount: String(unclaimed_token[1])
       })) : []
     };
-  });
+  }) : [];
 
   return {
     urls: urls,

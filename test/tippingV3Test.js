@@ -59,6 +59,14 @@ describe('Tipping V3 Contract', () => {
        assert.equal((await contract.methods.get_state()).decodedResult.version, "v3");
    });
 
+    it('Tipping Contract: Post without tip', async () => {
+        const post = await contract.methods.post_without_tip('Hello World', ['media1', 'media2']);
+        assert.equal(post.result.returnType, 'ok');
+
+        const state = TippingContractUtil.getTipsRetips(await contract.methods.get_state());
+        assert.lengthOf(state.tips, 1);
+    });
+
     it('Tipping Contract Interface', async () => {
         const interface = await client.getContractInstance(TIPPING_INTERFACE, {contractAddress: contract.deployInfo.address});
         const state = await interface.methods.get_state();
