@@ -33,9 +33,6 @@ contract OracleService =
   stateful entrypoint check_persist_claim : (string, address, bool) => success_claim
   payable stateful entrypoint query_oracle : (string, address) => unit
 
-contract FutureTippingContract =
-  payable stateful entrypoint receive_migrate_balance: () => unit
-
 contract Tipping =
 
   type tip_id       = int
