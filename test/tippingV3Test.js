@@ -18,7 +18,7 @@ const assert = require('chai').assert
 const {readFileRelative} = require('aeproject-utils/utils/fs-utils');
 const {defaultWallets: wallets} = require('aeproject-config/config/node-config.json');
 
-const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
+const {Universal, MemoryAccount, Node, Crypto} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
 const TIPPING_CONTRACT = readFileRelative('./contracts/v3/Tipping_v3.aes', 'utf-8');
@@ -65,6 +65,21 @@ describe('Tipping V3 Contract', () => {
 
         const state = TippingContractUtil.getTipsRetips(await contract.methods.get_state());
         assert.lengthOf(state.tips, 1);
+        assert.equal(state.tips.find(t => t.id === "0_v3").title, 'Hello World');
+        assert.deepEqual(state.tips.find(t => t.id === "0_v3").media, ['media1', 'media2']);
+    });
+
+    it('Tipping Contract: Post without tip with signature', async () => {
+        let hash = Crypto.hash("abc");
+        let signature = Crypto.signPersonalMessage(hash, Buffer.from(wallets[1].secretKey, 'hex'));
+
+        const post = await contract.methods.post_without_tip_sig('a', ['b', 'c'], wallets[1].publicKey, signature);
+        assert.equal(post.result.returnType, 'ok');
+
+        const state = TippingContractUtil.getTipsRetips(await contract.methods.get_state());
+        assert.lengthOf(state.tips, 2);
+        assert.equal(state.tips.find(t => t.id === "1_v3").title, 'a');
+        assert.deepEqual(state.tips.find(t => t.id === "1_v3").media, ['b', 'c']);
     });
 
     it('Tipping Contract Interface', async () => {
