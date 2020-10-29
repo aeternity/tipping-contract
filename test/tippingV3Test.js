@@ -70,7 +70,7 @@ describe('Tipping V3 Contract', () => {
     });
 
     it('Tipping Contract: Post without tip with signature', async () => {
-        let hash = Crypto.hash("abc");
+        let hash = Crypto.hash(TippingContractUtil.postWithoutTippingString('a', ['b', 'c']));
         let signature = Crypto.signPersonalMessage(hash, Buffer.from(wallets[1].secretKey, 'hex'));
 
         const post = await contract.methods.post_without_tip_sig('a', ['b', 'c'], wallets[1].publicKey, signature);
