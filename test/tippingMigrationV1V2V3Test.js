@@ -19,11 +19,12 @@ const assert = require('chai').assert
 const {readFileRelative} = require('aeproject-utils/utils/fs-utils');
 const {defaultWallets: wallets} = require('aeproject-config/config/node-config.json');
 
-const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
+const {Universal, MemoryAccount, Node, Crypto} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
 const TIPPING_CONTRACT_V1 = readFileRelative('./contracts/v1/Tipping_v1.aes', 'utf-8');
 const TIPPING_CONTRACT_V2 = readFileRelative('./contracts/v2/Tipping_v2.aes', 'utf-8');
+const TIPPING_CONTRACT_V3 = readFileRelative('./contracts/v3/Tipping_v3.aes', 'utf-8');
 const MOCK_ORACLE_SERVICE_CONTRACT = readFileRelative('./contracts/MockOracleService.aes', 'utf-8');
 const FUNGIBLE_TOKEN_CONTRACT = readFileRelative('./contracts/FungibleToken.aes', 'utf-8');
 
@@ -33,8 +34,8 @@ const config = {
     compilerUrl: 'http://localhost:3080'
 };
 
-describe('Tipping Contract Migration V1 V2', () => {
-    let client, contractV1, contractV2, tippingAddress;
+describe('Tipping Contract Migration V1 V2 V3', () => {
+    let client, contractV1, contractV2, contractV3, tippingAddress;
 
     before(async () => {
         client = await Universal({
@@ -61,10 +62,12 @@ describe('Tipping Contract Migration V1 V2', () => {
         await contractV1.methods.init(oracleServiceContract.deployInfo.address, wallets[0].publicKey);
 
         contractV2 = await client.getContractInstance(TIPPING_CONTRACT_V2);
-        await contractV2.methods.init(oracleServiceContract.deployInfo.address, wallets[0].publicKey);
+        await contractV2.methods.init(oracleServiceContract.deployInfo.address);
         tippingAddress = contractV2.deployInfo.address.replace('ct_', 'ak_');
-    });
 
+        contractV3 = await client.getContractInstance(TIPPING_CONTRACT_V3);
+        await contractV3.methods.init();
+    });
 
     it('Generate Sample State in V1 Contract', async () => {
         await contractV1.methods.tip('domain.test', 'Hello World', {amount: 1});
@@ -107,8 +110,23 @@ describe('Tipping Contract Migration V1 V2', () => {
         assert.equal(state.urls.find(u => u.url === 'other.test').unclaimed_amount, 24);
     });
 
-    it('Aggregate V1 and V2 state', async () => {
-        const state = TippingContractUtil.getTipsRetips(await contractV1.methods.get_state(), await contractV2.methods.get_state());
+    it('Generate Sample State in V3 Contract', async () => {
+        await contractV3.methods.post_without_tip('Hello World', ['media1', 'media2']);
+
+        let hash = Crypto.hash(TippingContractUtil.postWithoutTippingString('a', ['b', 'c']));
+        let signature = Crypto.signPersonalMessage(hash, Buffer.from(wallets[1].secretKey, 'hex'));
+
+        await contractV3.methods.post_without_tip_sig('a', ['b', 'c'], wallets[1].publicKey, signature);
+
+        const state = TippingContractUtil.getTipsRetips(await contractV3.methods.get_state());
+        assert.lengthOf(state.tips, 2);
+        assert.equal(state.tips.find(t => t.id === "0_v3").title, 'Hello World');
+        assert.equal(state.tips.find(t => t.id === "1_v3").title, 'a');
+        assert.deepEqual(state.tips.find(t => t.id === "1_v3").media, ['b', 'c']);
+    });
+
+    it('Aggregate V1, V2 and V3 state', async () => {
+        const state = TippingContractUtil.getTipsRetips(await contractV1.methods.get_state(), await contractV2.methods.get_state(), await contractV3.methods.get_state());
         assert.equal(state.urls.find(u => u.url === 'domain.test').unclaimed_amount, 8);
         assert.equal(state.urls.find(u => u.url === 'other.test').unclaimed_amount, 48);
         assert.deepEqual(state.urls.find(u => u.url === 'domain.test').token_unclaimed_amount, [{
@@ -116,11 +134,17 @@ describe('Tipping Contract Migration V1 V2', () => {
             "amount": String(555 + 444)
         }]);
 
-        assert.lengthOf(state.tips, 9);
-        assert.lengthOf(state.tips.filter(t => t.id.startsWith("0")), 2);
+        assert.lengthOf(state.tips, 11);
+        assert.lengthOf(state.tips.filter(t => t.id.startsWith("0")), 3);
         assert.lengthOf(state.tips.filter(t => t.id.startsWith("0") && t.contractId === contractV1.deployInfo.address), 1);
         assert.lengthOf(state.tips.filter(t => t.id.startsWith("0") && t.contractId === contractV2.deployInfo.address), 1);
+        assert.lengthOf(state.tips.filter(t => t.id.startsWith("0") && t.contractId === contractV3.deployInfo.address), 1);
         assert.lengthOf(state.tips.filter(t => t.id === "0_v1" && t.contractId === contractV1.deployInfo.address), 1);
         assert.lengthOf(state.tips.filter(t => t.id === "0_v2" && t.contractId === contractV2.deployInfo.address), 1);
+        assert.lengthOf(state.tips.filter(t => t.id === "0_v3" && t.contractId === contractV3.deployInfo.address), 1);
+
+        assert.equal(state.tips.find(t => t.id === "0_v3").title, 'Hello World');
+        assert.equal(state.tips.find(t => t.id === "1_v3").title, 'a');
+        assert.deepEqual(state.tips.find(t => t.id === "1_v3").media, ['b', 'c']);
     });
 });
