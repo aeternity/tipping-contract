@@ -186,7 +186,7 @@ const aggregateState = (returnState) => {
   };
 };
 
-tippingContractUtil.postWithoutTippingString = (title, media)  => media.reduce((acc, cur) => `${acc}${cur}`, title);
+tippingContractUtil.postWithoutTippingString = (title, media)  => title + media.join('');
 
 tippingContractUtil.claimableAmount = (state, url) => {
   const urlIdFind = state.decodedResult.urls.find(([u, _]) => url === u);
