@@ -38,18 +38,18 @@ contract Tipping =
   record retip = { sender : address, amount : int, token_amount : int, claim_gen : claim_gen, token: option(TokenContract), tip_id : tip_id }
   record state = { urls : map(url, url_id), claims : map(url_id, claim_gen * int * map(TokenContract, int)), url_index : map(url_id, url), tips : map(tip_id, tip), retips : map(retip_id, retip), oracle_service : OracleService, version : string }
 
-  payable stateful entrypoint tip : (string, string) => int
-  stateful entrypoint tip_token : (string, string, TokenContract, int) => int
+  payable stateful entrypoint tip : (url, string) => int
+  stateful entrypoint tip_token : (url, string, TokenContract, int) => int
   payable stateful entrypoint tip_direct : (receiver, string) => int
   stateful entrypoint tip_token_direct : (receiver, string, TokenContract, int) => int
 
   payable stateful entrypoint retip : (tip_id) => int
   stateful entrypoint retip_token : (tip_id, TokenContract, int) => int
-  payable stateful entrypoint pre_claim : (string, address) => unit
-  stateful entrypoint claim : (string, address, bool) => unit
+  payable stateful entrypoint pre_claim : (url, address) => unit
+  stateful entrypoint claim : (url, address, bool) => unit
 
   entrypoint get_state : () => state
-  entrypoint tips_for_url : (string) => list(tip)
+  entrypoint tips_for_url : (url) => list(tip)
   entrypoint retips_for_tip : (tip_id) => list(retip)
-  entrypoint unclaimed_for_url : (string) => (int * map(TokenContract, int))
-  entrypoint check_claim : (string, address) => OracleService.success_claim
+  entrypoint unclaimed_for_url : (url) => (int * map(TokenContract, int))
+  entrypoint check_claim : (url, address) => OracleService.success_claim
