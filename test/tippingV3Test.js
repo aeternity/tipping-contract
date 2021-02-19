@@ -79,7 +79,7 @@ describe('Tipping V3 Contract', () => {
         const state = TippingContractUtil.getTipsRetips(await contract.methods.get_state());
         assert.lengthOf(state.tips, 2);
         assert.equal(state.tips.find(t => t.id === "1_v3").title, 'a');
-        assert.equal(state.tips.find(t => t.id === "1_v3").type, 'PostWithoutTip');
+        assert.equal(state.tips.find(t => t.id === "1_v3").type, 'POST_WITHOUT_TIP');
         assert.deepEqual(state.tips.find(t => t.id === "1_v3").media, ['b', 'c']);
     });
 
