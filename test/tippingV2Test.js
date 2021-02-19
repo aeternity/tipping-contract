@@ -81,6 +81,7 @@ describe('Tipping V2 Contract', () => {
         assert.lengthOf(state.tips, 3);
         assert.lengthOf(state.urls, 2);
         assert.equal(state.tips.find(t => t.id === "0_v2").total_unclaimed_amount, "100");
+        assert.equal(state.tips.find(t => t.id === "0_v2").type, "AeTip");
         assert.equal(state.tips.find(t => t.id === "1_v2").total_unclaimed_amount, "100");
         assert.equal(state.tips.find(t => t.id === "2_v2").total_unclaimed_amount, "100");
         assert.equal((await contract.methods.unclaimed_for_url('domain.test')).decodedResult[0], 100 + 100);
