@@ -80,12 +80,14 @@ const aggregateState = (returnState) => {
     switch (tipType) {
       case 'AeTip':
         data = tipData[0];
+        data.type = tipType;
         data.url_id = tipData[1];
         data.amount = tipData[2];
         data.claim_gen = tipData[3];
         break;
       case 'TokenTip':
         data = tipData[0];
+        data.type = tipType;
         data.url_id = tipData[1];
         data.token = tipData[2].token;
         data.token_amount = tipData[2].amount;
@@ -94,11 +96,13 @@ const aggregateState = (returnState) => {
         break;
       case 'DirectAeTip':
         data = tipData[0];
+        data.type = tipType;
         data.receiver = tipData[1];
         data.amount = tipData[2];
         break;
       case 'DirectTokenTip':
         data = tipData[0];
+        data.type = tipType;
         data.receiver = tipData[1];
         data.token = tipData[2].token;
         data.token_amount = tipData[2].amount;
@@ -106,15 +110,16 @@ const aggregateState = (returnState) => {
         break;
       case 'PostWithoutTip':
         data = tipData[0];
+        data.type = tipType;
         data.media = tipData[1];
         data.amount = 0;
         break;
       default:
         data = tipTypeData; // Fallback for old contract state format
+        data.type = 'AeTip';
         break;
     }
 
-    data.type = tipType ? tipType : 'AeTip';
     data.id = id + suffix;
     data.contractId = returnState.result.contractId;
 

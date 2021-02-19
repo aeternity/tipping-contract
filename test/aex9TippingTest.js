@@ -157,6 +157,7 @@ describe('AEX9 Tipping Contract', () => {
         assert.deepEqual(state.urls.find(u => u.url === 'other.test').token_unclaimed_amount, []);
 
         assert.equal(state.tips.find(u => u.title === 'Hello World 3').amount, 0);
+        assert.equal(state.tips.find(u => u.title === 'Hello World 3').type, "TokenTip");
         assert.equal(state.tips.find(u => u.title === 'Hello World 3').token_amount, 123);
         assert.equal(state.tips.find(u => u.title === 'Hello World 3').token, tokenContract1.deployInfo.address);
     });
