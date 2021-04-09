@@ -1,12 +1,19 @@
+include "List.aes"
+
 contract TokenContract =
   stateful entrypoint transfer_allowance : (address, address, int) => unit
   stateful entrypoint transfer : (address, int) => unit
 
 contract OracleService =
-  record success_claim = { success : bool, caller : address, percentage : int }
+  type oracle_type = oracle(string, string)
+  type oracle_query_tuples = list(oracle_type * oracle_query(string, string))
+
+  record success_claim = { success : bool, account : address, percentage : int }
+  record state = { trusted_oracles : map(int, oracle_type), trusted_oracle_seq : int, oracle_queries : map(string, oracle_query_tuples), minimum_amount_of_oracles : int, success_claimed_urls : map(string, success_claim), owner : address }
 
   stateful entrypoint check_persist_claim : (string, address, bool) => success_claim
   payable stateful entrypoint query_oracle : (string, address) => unit
+  entrypoint get_state : () => state
 
 contract Tipping =
   type tip_id = int
@@ -49,3 +56,10 @@ contract TippingGetter =
 
   entrypoint get_claims_by_url_id(c : Tipping, url_id : int) : option(Tipping.claim_gen * int * map(TokenContract, int)) =
     Map.lookup(url_id, c.get_state().claims)
+
+  entrypoint get_oracle_claimed_urls_by_account(c : Tipping, account : address) : list(string) =
+    let list_success_claimed_urls = Map.to_list(c.get_state().oracle_service.get_state().success_claimed_urls)
+    let filtered_success_claimed_urls = List.filter((t) => switch(t)
+      (_, i) => i.success && i.account == account, list_success_claimed_urls)
+    List.map((t) => switch(t)
+      (url, _) => url, filtered_success_claimed_urls)
