@@ -1,4 +1,5 @@
 include "List.aes"
+include "Option.aes"
 
 contract TokenContract =
   stateful entrypoint transfer_allowance : (address, address, int) => unit
@@ -50,6 +51,9 @@ contract Tipping =
 contract TippingGetter =
   entrypoint get_tip_by_id(c : Tipping, tip_id : int) : option(Tipping.tip) =
     Map.lookup(tip_id, c.get_state().tips)
+
+  entrypoint get_url_by_id(c : Tipping, url_id : int) : option(Tipping.url) =
+    Map.lookup(url_id, c.get_state().url_index)
 
   entrypoint get_retip_by_id(c : Tipping, retip_id : int) : option(Tipping.retip) =
     Map.lookup(retip_id, c.get_state().retips)
