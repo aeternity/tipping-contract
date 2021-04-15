@@ -59,14 +59,3 @@ contract TippingGetter =
 
   entrypoint get_claims_by_url_id(c : Tipping, url_id : int) : option(Tipping.claim_gen * int * map(TokenContract, int)) =
     Map.lookup(url_id, c.get_state().claims)
-
-  entrypoint get_oracle_claimed_urls_by_account(c : Tipping, account : address) : list(string) =
-    let list_success_claimed_urls = Map.to_list(c.get_state().oracle_service.get_state().success_claimed_urls)
-    [ url | (url, success_claim) <- list_success_claimed_urls, if(success_claim.success && success_claim.account == account) ]
-
-  entrypoint get_oracle_claimed_urls(c : Tipping) : list(string) =
-    let list_success_claimed_urls = Map.to_list(c.get_state().oracle_service.get_state().success_claimed_urls)
-    [ url | (url, success_claim) <- list_success_claimed_urls, if(success_claim.success) ]
-
-  entrypoint get_oracle_claim_by_url(c : Tipping, url : string) : option(OracleService.success_claim) =
-    Map.lookup(url, c.get_state().oracle_service.get_state().success_claimed_urls)
