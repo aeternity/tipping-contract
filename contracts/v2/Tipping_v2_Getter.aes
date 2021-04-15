@@ -1,5 +1,4 @@
 include "List.aes"
-include "Option.aes"
 
 contract TokenContract =
   stateful entrypoint transfer_allowance : (address, address, int) => unit
@@ -63,7 +62,8 @@ contract TippingGetter =
 
   entrypoint get_oracle_claimed_urls_by_account(c : Tipping, account : address) : list(string) =
     let list_success_claimed_urls = Map.to_list(c.get_state().oracle_service.get_state().success_claimed_urls)
-    let filtered_success_claimed_urls = List.filter((t) => switch(t)
-      (_, i) => i.success && i.account == account, list_success_claimed_urls)
-    List.map((t) => switch(t)
-      (url, _) => url, filtered_success_claimed_urls)
+    [ url | (url, success_claim) <- list_success_claimed_urls, if(success_claim.success && success_claim.account == account) ]
+
+  entrypoint get_oracle_claimed_urls(c : Tipping) : list(string) =
+    let list_success_claimed_urls = Map.to_list(c.get_state().oracle_service.get_state().success_claimed_urls)
+    [ url | (url, success_claim) <- list_success_claimed_urls, if(success_claim.success) ]
