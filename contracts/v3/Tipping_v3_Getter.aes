@@ -1,0 +1,13 @@
+contract Tipping =
+  type tip_id = int
+  datatype tip = PostWithoutTip(tip_meta, list(string))
+
+  record tip_meta = { sender : address, title : string, timestamp : int }
+  record state = { tips : map(tip_id, tip), version : string }
+
+  datatype event = PostWithoutTipReceived(address, string)
+  entrypoint get_state : () => state
+
+contract TippingGetter =
+  entrypoint get_tip_by_id(c : Tipping, tip_id : int) : option(Tipping.tip) =
+    Map.lookup(tip_id, c.get_state().tips)
