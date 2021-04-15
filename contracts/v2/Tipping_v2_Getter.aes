@@ -1,19 +1,9 @@
-include "List.aes"
-
 contract TokenContract =
   stateful entrypoint transfer_allowance : (address, address, int) => unit
   stateful entrypoint transfer : (address, int) => unit
 
 contract OracleService =
   type oracle_type = oracle(string, string)
-  type oracle_query_tuples = list(oracle_type * oracle_query(string, string))
-
-  record success_claim = { success : bool, account : address, percentage : int }
-  record state = { trusted_oracles : map(int, oracle_type), trusted_oracle_seq : int, oracle_queries : map(string, oracle_query_tuples), minimum_amount_of_oracles : int, success_claimed_urls : map(string, success_claim), owner : address }
-
-  stateful entrypoint check_persist_claim : (string, address, bool) => success_claim
-  payable stateful entrypoint query_oracle : (string, address) => unit
-  entrypoint get_state : () => state
 
 contract Tipping =
   type tip_id = int
@@ -30,15 +20,6 @@ contract Tipping =
     | TokenTip(tip_meta, url_id, tip_token_data, claim_gen)
     | DirectAeTip(tip_meta, receiver, amount)
     | DirectTokenTip(tip_meta, receiver, tip_token_data)
-
-  datatype event
-    = TipReceived(address, amount, url)
-    | ReTipReceived(address, amount, url)
-    | TipWithdrawn(address, amount, url)
-    | TipTokenReceived(address, amount, url, TokenContract)
-    | ReTipTokenReceived(address, amount, url, TokenContract)
-    | TipDirectReceived(address, amount, receiver_str)
-    | TipDirectTokenReceived(address, amount, receiver_str, TokenContract)
 
   record tip_token_data = { token : TokenContract, amount : int }
   record tip_meta = { sender : address, title : string, timestamp : int }
