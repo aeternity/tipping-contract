@@ -38,5 +38,5 @@ contract TippingGetter =
   entrypoint get_retip_by_id(c : Tipping, retip_id : int) : option(Tipping.retip) =
     Map.lookup(retip_id, c.get_state().retips)
 
-  entrypoint get_claims_by_url_id(c : Tipping, url_id : int) : option(Tipping.claim_gen * int * map(TokenContract, int)) =
-    Map.lookup(url_id, c.get_state().claims)
+  entrypoint get_claim_by_url(c : Tipping, url : string) : option(Tipping.claim_gen * int * map(TokenContract, int)) =
+    Map.lookup(c.get_state().urls[url], c.get_state().claims)
