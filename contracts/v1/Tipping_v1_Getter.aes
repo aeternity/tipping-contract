@@ -1,0 +1,28 @@
+contract OracleService =
+  type oracle_type = oracle(string, string)
+
+contract Tipping =
+  type tip_id    = int
+  type url_id    = int
+  type retip_id  = int
+  type url       = string
+  type claim_gen = int
+
+  record tip = { sender : address, title : string, claim_gen : claim_gen, timestamp : int, url_id : url_id, amount : int }
+  record retip = { sender : address, amount : int, claim_gen : claim_gen, tip_id : tip_id }
+  record state = { urls : map(url, url_id), claims : map(url_id, claim_gen * int), url_index : map(url_id, url), tips : map(tip_id, tip), retips : map(retip_id, retip), owner : address, oracle_service : OracleService }
+
+  entrypoint get_state : () => state
+
+contract TippingGetter =
+  entrypoint get_tip_by_id(c : Tipping, tip_id : int) : option(Tipping.tip) =
+    Map.lookup(tip_id, c.get_state().tips)
+
+  entrypoint get_url_by_id(c : Tipping, url_id : int) : option(Tipping.url) =
+    Map.lookup(url_id, c.get_state().url_index)
+
+  entrypoint get_retip_by_id(c : Tipping, retip_id : int) : option(Tipping.retip) =
+    Map.lookup(retip_id, c.get_state().retips)
+
+  entrypoint get_claim_by_url(c : Tipping, url : string) : option(Tipping.claim_gen * int) =
+    Map.lookup(c.get_state().urls[url], c.get_state().claims)
