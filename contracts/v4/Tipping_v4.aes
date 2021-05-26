@@ -1,0 +1,66 @@
+// ISC License
+//
+// Copyright (c) 2020, aeternity developers
+//
+// Permission to use, copy, modify, and/or distribute this software for any
+// purpose with or without fee is hereby granted, provided that the above
+// copyright notice and this permission notice appear in all copies.
+//
+// THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+// REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+// AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+// INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+// LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
+// OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+// PERFORMANCE OF THIS SOFTWARE.
+
+
+// THIS IS NOT SECURITY AUDITED
+// DO NEVER USE THIS WITHOUT SECURITY AUDIT FIRST
+
+@compiler >= 4.2
+//@compiler >= 6
+
+contract TokenContract = //contract interface TokenContract =
+  stateful entrypoint transfer_allowance : (address, address, int) => unit
+  stateful entrypoint burn : (int) => unit
+
+contract Tipping =
+  type tip_id = int
+  type token_amount = int
+
+  datatype tip = PostViaBurn(tip_meta, list(string), TokenContract, token_amount)
+
+  record tip_meta = { sender    : address
+                    , title     : string
+                    , timestamp : int }
+
+  record state = { tips    : map(tip_id, tip)
+                 , version : string }
+
+  datatype event = PostViaBurnReceived(tip_id, address, string)
+
+  entrypoint init() : state =
+    { tips = {},
+      version = "v4" }
+
+  stateful entrypoint post_via_burn(title : string, media : list(string), token : TokenContract, token_amount : token_amount) : int =
+    let tip_id = Map.size(state.tips)
+    let tip_meta = { sender    = Call.caller
+                   , title     = title
+                   , timestamp = Chain.timestamp }
+    put(state{ tips[tip_id] = PostViaBurn(tip_meta, media, token, token_amount) })
+    token.transfer_allowance(Call.caller, Contract.address, token_amount)
+    token.burn(token_amount)
+    Chain.event(PostViaBurnReceived(tip_id, Call.caller, title))
+    tip_id
+
+  // GETTER FUNCTIONS
+
+  entrypoint get_state() : state = state
+
+  entrypoint get_tip_by_id(tip_id : int) : option(tip) =
+    Map.lookup(tip_id, state.tips)
+
+  entrypoint version() : string =
+    state.version

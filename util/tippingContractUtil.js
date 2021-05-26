@@ -114,6 +114,13 @@ const aggregateState = (returnState) => {
         data.media = tipData[1];
         data.amount = 0;
         break;
+      case 'PostViaBurn':
+        data = tipData[0];
+        data.type = 'POST_VIA_BURN';
+        data.media = tipData[1];
+        data.token = tipData[2];
+        data.token_amount = tipData[3];
+        break;
       default:
         data = tipTypeData; // Fallback for old contract state format
         data.type = 'AE_TIP';
