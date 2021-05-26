@@ -17,3 +17,6 @@ fs.writeFileSync(__dirname + '/../Tipping_v3_Interface.aes.js', `module.exports 
 
 const tippingV3Getter = fs.readFileSync(__dirname + '/../contracts/v3/Tipping_v3_Getter.aes', 'utf-8');
 fs.writeFileSync(__dirname + '/../Tipping_v3_Getter.aes.js', `module.exports = \`\n${tippingV3Getter}\`;\n`, 'utf-8');
+
+const tippingV4Interface = fs.readFileSync(__dirname + '/../contracts/v4/Tipping_v4_Interface.aes', 'utf-8');
+fs.writeFileSync(__dirname + '/../Tipping_v4_Interface.aes.js', `module.exports = \`\n${tippingV4Interface}\`;\n`, 'utf-8');
