@@ -77,13 +77,13 @@ describe('Tipping V4 Contract', () => {
     });
 
     it('Tipping Contract: Post via burn', async () => {
-        const supplyBefore = await tokenContract.methods.total_supply().then(r => r.decodedResult);
+        const burnedBefore = await tokenContract.methods.balance('ak_11111111111111111111111111111111273Yts').then(r => r.decodedResult || 0);
         await tokenContract.methods.change_allowance(tippingAddress, 50);
         const post = await contract.methods.post_via_burn('Hello World', ['media1', 'media2'], tokenContract.deployInfo.address, 100);
         assert.equal(post.result.returnType, 'ok');
 
-        const supplyAfter = await tokenContract.methods.total_supply().then(r => r.decodedResult);;
-        assert.equal(supplyBefore, supplyAfter + 100);
+        const burnedAfter = await tokenContract.methods.balance('ak_11111111111111111111111111111111273Yts').then(r => r.decodedResult);
+        assert.equal(burnedBefore + 100, burnedAfter);
 
         const state = TippingContractUtil.getTipsRetips(await contract.methods.get_state());
         assert.lengthOf(state.tips, 1);
