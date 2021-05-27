@@ -18,7 +18,7 @@ const assert = require('chai').assert
 const {readFileRelative} = require('aeproject-utils/utils/fs-utils');
 const {defaultWallets: wallets} = require('aeproject-config/config/node-config.json');
 
-const {Universal, MemoryAccount, Node, Crypto} = require('@aeternity/aepp-sdk');
+const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
 const TIPPING_CONTRACT = readFileRelative('./contracts/v4/Tipping_v4.aes', 'utf-8');
@@ -67,15 +67,26 @@ describe('Tipping V4 Contract', () => {
         assert.equal((await contract.methods.version()).decodedResult, "v4");
     });
 
-    //TODO test token supply drop by burn, test failure without allowance
-    it('Tipping Contract: Post without tip', async () => {
-        await tokenContract.methods.create_allowance(tippingAddress, 100);
+    it('Tipping Contract: Post via burn fail without correct allowance', async () => {
+        const post1 = await contract.methods.post_via_burn('Hello World', ['media1', 'media2'], tokenContract.deployInfo.address, 100).catch(e => e);
+        assert.include(post1.decodedError, 'ALLOWANCE_NOT_EXISTENT');
+
+        await tokenContract.methods.create_allowance(tippingAddress, 50);
+        const post2 = await contract.methods.post_via_burn('Hello World', ['media1', 'media2'], tokenContract.deployInfo.address, 100).catch(e => e);
+        assert.include(post2.decodedError, 'NON_NEGATIVE_VALUE_REQUIRED');
+    });
+
+    it('Tipping Contract: Post via burn', async () => {
+        const supplyBefore = await tokenContract.methods.total_supply().then(r => r.decodedResult);
+        await tokenContract.methods.change_allowance(tippingAddress, 50);
         const post = await contract.methods.post_via_burn('Hello World', ['media1', 'media2'], tokenContract.deployInfo.address, 100);
         assert.equal(post.result.returnType, 'ok');
 
+        const supplyAfter = await tokenContract.methods.total_supply().then(r => r.decodedResult);;
+        assert.equal(supplyBefore, supplyAfter + 100);
+
         const state = TippingContractUtil.getTipsRetips(await contract.methods.get_state());
         assert.lengthOf(state.tips, 1);
-        console.log(state);
         assert.equal(state.tips.find(t => t.id === "0_v4").title, 'Hello World');
         assert.deepEqual(state.tips.find(t => t.id === "0_v4").media, ['media1', 'media2']);
     });
