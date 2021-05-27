@@ -50,10 +50,11 @@ contract Tipping =
                    , title     = title
                    , timestamp = Chain.timestamp }
     put(state{ tips[tip_id] = PostViaBurn(tip_meta, media, token, token_amount) })
-    token.transfer_allowance(Call.caller, Contract.address, token_amount)
-    token.burn(token_amount)
+    token.transfer_allowance(Call.caller, burn_address(), token_amount)
     Chain.event(PostViaBurnReceived(tip_id, Call.caller, title, token))
     tip_id
+
+  function burn_address() : address = ak_11111111111111111111111111111111273Yts
 
   // GETTER FUNCTIONS
 
