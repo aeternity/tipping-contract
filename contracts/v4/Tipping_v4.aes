@@ -38,7 +38,7 @@ contract Tipping =
   record state = { tips    : map(tip_id, tip)
                  , version : string }
 
-  datatype event = PostViaBurnReceived(tip_id, address, string)
+  datatype event = PostViaBurnReceived(tip_id, address, string, TokenContract)
 
   entrypoint init() : state =
     { tips = {},
@@ -52,7 +52,7 @@ contract Tipping =
     put(state{ tips[tip_id] = PostViaBurn(tip_meta, media, token, token_amount) })
     token.transfer_allowance(Call.caller, Contract.address, token_amount)
     token.burn(token_amount)
-    Chain.event(PostViaBurnReceived(tip_id, Call.caller, title))
+    Chain.event(PostViaBurnReceived(tip_id, Call.caller, title, token))
     tip_id
 
   // GETTER FUNCTIONS
