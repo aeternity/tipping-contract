@@ -23,7 +23,6 @@
 
 contract TokenContract = //contract interface TokenContract =
   stateful entrypoint transfer_allowance : (address, address, int) => unit
-  stateful entrypoint burn : (int) => unit
 
 contract Tipping =
   type tip_id = int
