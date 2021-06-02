@@ -18,13 +18,13 @@
 // THIS IS NOT SECURITY AUDITED
 // DO NEVER USE THIS WITHOUT SECURITY AUDIT FIRST
 
-@compiler >= 4.2
+@compiler >= 6
 
-contract TokenContract =
+contract interface TokenContract =
   stateful entrypoint transfer_allowance : (address, address, int) => unit
   stateful entrypoint transfer : (address, int) => unit
 
-contract OracleService =
+contract interface OracleService =
   record success_claim =
     { success : bool
     , account : address
@@ -33,7 +33,7 @@ contract OracleService =
   stateful entrypoint check_persist_claim : (string, address, bool) => success_claim
   payable stateful entrypoint query_oracle : (string, address) => unit
 
-contract Tipping =
+main contract Tipping =
 
   type tip_id       = int
   type url_id       = int

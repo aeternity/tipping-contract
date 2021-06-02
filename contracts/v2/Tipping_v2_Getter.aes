@@ -1,11 +1,13 @@
-contract TokenContract =
+@compiler >= 6
+
+contract interface TokenContract =
   stateful entrypoint transfer_allowance : (address, address, int) => unit
   stateful entrypoint transfer : (address, int) => unit
 
-contract OracleService =
+contract interface OracleService =
   type oracle_type = oracle(string, string)
 
-contract Tipping =
+contract interface Tipping =
   type tip_id = int
   type url_id = int
   type retip_id = int
@@ -28,7 +30,7 @@ contract Tipping =
 
   entrypoint get_state : () => state
 
-contract TippingGetter =
+main contract TippingGetter =
   entrypoint get_tip_by_id(c : Tipping, tip_id : int) : option(Tipping.tip) =
     Map.lookup(tip_id, c.get_state().tips)
 

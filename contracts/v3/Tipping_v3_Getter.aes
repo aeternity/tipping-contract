@@ -1,4 +1,6 @@
-contract Tipping =
+@compiler >= 6
+
+contract interface Tipping =
   type tip_id = int
   datatype tip = PostWithoutTip(tip_meta, list(string))
 
@@ -8,6 +10,6 @@ contract Tipping =
   datatype event = PostWithoutTipReceived(address, string)
   entrypoint get_state : () => state
 
-contract TippingGetter =
+main contract TippingGetter =
   entrypoint get_tip_by_id(c : Tipping, tip_id : int) : option(Tipping.tip) =
     Map.lookup(tip_id, c.get_state().tips)
