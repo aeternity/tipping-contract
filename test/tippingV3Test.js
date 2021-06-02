@@ -14,15 +14,15 @@
  *  OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  *  PERFORMANCE OF THIS SOFTWARE.
  */
-const assert = require('chai').assert
-const {readFileRelative} = require('aeproject-utils/utils/fs-utils');
-const {defaultWallets: wallets} = require('aeproject-config/config/node-config.json');
+const fs = require('fs');
+const assert = require('chai').assert;
+const {defaultWallets: wallets} = require('../config/wallets.json');
 
 const {Universal, MemoryAccount, Node, Crypto} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
-const TIPPING_CONTRACT = readFileRelative('./contracts/v3/Tipping_v3.aes', 'utf-8');
-const TIPPING_INTERFACE = readFileRelative('./contracts/v3/Tipping_v3_Interface.aes', 'utf-8');
+const TIPPING_CONTRACT = fs.readFileSync('./contracts/v3/Tipping_v3.aes', 'utf-8');
+const TIPPING_INTERFACE = fs.readFileSync('./contracts/v3/Tipping_v3_Interface.aes', 'utf-8');
 
 const config = {
     url: 'http://localhost:3001/',

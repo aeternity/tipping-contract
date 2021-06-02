@@ -14,16 +14,17 @@
  *  OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  *  PERFORMANCE OF THIS SOFTWARE.
  */
-const assert = require('chai').assert
-const {readFileRelative} = require('aeproject-utils/utils/fs-utils');
-const {defaultWallets: wallets} = require('aeproject-config/config/node-config.json');
+const fs = require('fs');
+const assert = require('chai').assert;
+const {defaultWallets: wallets} = require('../config/wallets.json');
 
 const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
-const TIPPING_CONTRACT = readFileRelative('./contracts/v1/Tipping_v1.aes', 'utf-8');
-const TIPPING_INTERFACE = readFileRelative('./contracts/v1/Tipping_v1_Interface.aes', 'utf-8');
-const MOCK_ORACLE_SERVICE_CONTRACT = readFileRelative('./contracts/MockOracleService.aes', 'utf-8');
+const TIPPING_CONTRACT = fs.readFileSync('./contracts/v1/Tipping_v1.aes', 'utf-8');
+const TIPPING_INTERFACE = fs.readFileSync('./contracts/v1/Tipping_v1_Interface.aes', 'utf-8');
+const TIPPING_GETTER = fs.readFileSync('./contracts/v1/Tipping_v1_Getter.aes', 'utf-8');
+const MOCK_ORACLE_SERVICE_CONTRACT = fs.readFileSync('./contracts/MockOracleService.aes', 'utf-8');
 
 const config = {
   url: 'http://localhost:3001/',
@@ -164,9 +165,16 @@ describe('Tipping V1 Contract', () => {
   });
 
   it('Tipping Contract Interface Check', async () => {
-    const interface = await client.getContractInstance(TIPPING_INTERFACE, {contractAddress: contract.deployInfo.address});
+    const interface = await client.getContractInstance(TIPPING_INTERFACE, {contractAddress: contract.deployInfo.address}).catch(console.error);
     const state = (await interface.methods.get_state()).decodedResult;
     assert.equal(state.owner, wallets[0].publicKey);
+  });
+
+  it('Tipping Contract Getter', async () => {
+    const getter = await client.getContractInstance(TIPPING_GETTER);
+    await getter.deploy();
+    const tipById = (await getter.methods.get_tip_by_id(contract.deployInfo.address, 1)).decodedResult;
+    assert.equal(tipById.sender, wallets[0].publicKey);
   });
 
 });

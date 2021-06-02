@@ -4,21 +4,20 @@
   "description": "This is the default package.json generated for your project",
   "main": "index.js",
   "scripts": {
-    "test": "mocha",
+    "test": "mocha ./test/**/*.js --timeout 0 --exit",
+    "aetest": "aeproject test",
     "postinstall": "node .scripts/postinstall.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aeternity/aepp-sdk": "^7.7.0",
-    "aeproject-config": "^2.2.0",
-    "aeproject-lib": "^2.2.0",
-    "aeproject-utils": "^2.2.0",
+    "@aeternity/aepp-sdk": "8.1.0",
     "bignumber.js": "^9.0.1",
-    "chai": "^4.2.0",
+    "prompts": "^2.4.1",
     "esm": "^3.2.25"
   },
   "devDependencies": {
-    "mocha": "^8.1.1"
+    "chai": "^4.3.4",
+    "mocha": "^8.4.0"
   }
 }

@@ -14,16 +14,16 @@
  *  OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  *  PERFORMANCE OF THIS SOFTWARE.
  */
-const assert = require('chai').assert
-const {readFileRelative} = require('aeproject-utils/utils/fs-utils');
-const {defaultWallets: wallets} = require('aeproject-config/config/node-config.json');
+const fs = require('fs');
+const assert = require('chai').assert;
+const {defaultWallets: wallets} = require('../config/wallets.json');
 
 const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
-const TIPPING_CONTRACT = readFileRelative('./contracts/v2/Tipping_v2.aes', 'utf-8');
-const FUNGIBLE_TOKEN_CONTRACT = readFileRelative('./contracts/FungibleToken.aes', 'utf-8');
-const MOCK_ORACLE_SERVICE_CONTRACT = readFileRelative('./contracts/MockOracleService.aes', 'utf-8');
+const TIPPING_CONTRACT = fs.readFileSync('./contracts/v2/Tipping_v2.aes', 'utf-8');
+const FUNGIBLE_TOKEN_CONTRACT = fs.readFileSync('./contracts/FungibleToken.aes', 'utf-8');
+const MOCK_ORACLE_SERVICE_CONTRACT = fs.readFileSync('./contracts/MockOracleService.aes', 'utf-8');
 
 const config = {
     url: 'http://localhost:3001/',

@@ -15,18 +15,18 @@
  *  PERFORMANCE OF THIS SOFTWARE.
  */
 
-const assert = require('chai').assert
-const {readFileRelative} = require('aeproject-utils/utils/fs-utils');
-const {defaultWallets: wallets} = require('aeproject-config/config/node-config.json');
+const fs = require('fs');
+const assert = require('chai').assert;
+const {defaultWallets: wallets} = require('../config/wallets.json');
 
 const {Universal, MemoryAccount, Node, Crypto} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
-const TIPPING_CONTRACT_V1 = readFileRelative('./contracts/v1/Tipping_v1.aes', 'utf-8');
-const TIPPING_CONTRACT_V2 = readFileRelative('./contracts/v2/Tipping_v2.aes', 'utf-8');
-const TIPPING_CONTRACT_V3 = readFileRelative('./contracts/v3/Tipping_v3.aes', 'utf-8');
-const MOCK_ORACLE_SERVICE_CONTRACT = readFileRelative('./contracts/MockOracleService.aes', 'utf-8');
-const FUNGIBLE_TOKEN_CONTRACT = readFileRelative('./contracts/FungibleToken.aes', 'utf-8');
+const TIPPING_CONTRACT_V1 = fs.readFileSync('./contracts/v1/Tipping_v1.aes', 'utf-8');
+const TIPPING_CONTRACT_V2 = fs.readFileSync('./contracts/v2/Tipping_v2.aes', 'utf-8');
+const TIPPING_CONTRACT_V3 = fs.readFileSync('./contracts/v3/Tipping_v3.aes', 'utf-8');
+const MOCK_ORACLE_SERVICE_CONTRACT = fs.readFileSync('./contracts/MockOracleService.aes', 'utf-8');
+const FUNGIBLE_TOKEN_CONTRACT = fs.readFileSync('./contracts/FungibleToken.aes', 'utf-8');
 
 const config = {
     url: 'http://localhost:3001/',

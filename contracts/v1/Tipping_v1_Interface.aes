@@ -1,10 +1,12 @@
-contract OracleService =
+@compiler >= 6
+
+contract interface OracleService =
   record success_claim = { success : bool, caller : address, percentage : int }
 
   stateful entrypoint check_persist_claim : (string, address, bool) => success_claim
   payable stateful entrypoint query_oracle : (string, address) => unit
 
-contract Tipping =
+main contract Tipping =
   type tip_id    = int
   type url_id    = int
   type retip_id  = int
