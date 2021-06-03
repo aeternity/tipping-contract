@@ -23,6 +23,7 @@ const TippingContractUtil = require('../util/tippingContractUtil');
 
 const TIPPING_CONTRACT = fs.readFileSync('./contracts/v3/Tipping_v3.aes', 'utf-8');
 const TIPPING_INTERFACE = fs.readFileSync('./contracts/v3/Tipping_v3_Interface.aes', 'utf-8');
+const TIPPING_GETTER = fs.readFileSync('./contracts/v3/Tipping_v3_Getter.aes', 'utf-8');
 
 const config = {
     url: 'http://localhost:3001/',
@@ -87,5 +88,12 @@ describe('Tipping V3 Contract', () => {
         const interface = await client.getContractInstance(TIPPING_INTERFACE, {contractAddress: contract.deployInfo.address});
         const state = await interface.methods.get_state();
         assert.equal(state.result.returnType, 'ok');
+    });
+
+    it('Tipping Contract Getter', async () => {
+        const getter = await client.getContractInstance(TIPPING_GETTER);
+        await getter.deploy();
+        const tipById = (await getter.methods.get_tip_by_id(contract.deployInfo.address, 1)).decodedResult;
+        assert.equal(tipById.PostWithoutTip[0].sender, wallets[1].publicKey);
     });
 });
