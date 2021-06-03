@@ -131,7 +131,7 @@ describe('Tipping V1 Contract', () => {
     assert.equal(state1.urls.find(u => u.url === 'domain.test').unclaimed_amount, 0);
 
     const zeroClaim = await contract.methods.claim('domain.test', wallets[1].publicKey, false).catch(e => e);
-    assert.include(zeroClaim.decodedError, 'NO_ZERO_AMOUNT_PAYOUT');
+    assert.include(zeroClaim.message, 'NO_ZERO_AMOUNT_PAYOUT');
 
     await contract.methods.retip(0, {amount : 53});
     const state2 = TippingContractUtil.getTipsRetips(await contract.methods.get_state());
@@ -165,7 +165,7 @@ describe('Tipping V1 Contract', () => {
   });
 
   it('Tipping Contract Interface Check', async () => {
-    const interface = await client.getContractInstance(TIPPING_INTERFACE, {contractAddress: contract.deployInfo.address}).catch(console.error);
+    const interface = await client.getContractInstance(TIPPING_INTERFACE, {contractAddress: contract.deployInfo.address});
     const state = (await interface.methods.get_state()).decodedResult;
     assert.equal(state.owner, wallets[0].publicKey);
   });

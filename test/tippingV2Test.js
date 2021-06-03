@@ -23,6 +23,7 @@ const TippingContractUtil = require('../util/tippingContractUtil');
 
 const TIPPING_CONTRACT = fs.readFileSync('./contracts/v2/Tipping_v2.aes', 'utf-8');
 const TIPPING_INTERFACE = fs.readFileSync('./contracts/v2/Tipping_v2_Interface.aes', 'utf-8');
+const TIPPING_GETTER = fs.readFileSync('./contracts/v2/Tipping_v2_Getter.aes', 'utf-8');
 const MOCK_ORACLE_SERVICE_CONTRACT = fs.readFileSync('./contracts/MockOracleService.aes', 'utf-8');
 
 const config = {
@@ -156,5 +157,12 @@ describe('Tipping V2 Contract', () => {
         const interface = await client.getContractInstance(TIPPING_INTERFACE, {contractAddress: contract.deployInfo.address});
         const state = await interface.methods.get_state();
         assert.equal(state.result.returnType, 'ok');
+    });
+
+    it('Tipping Contract Getter', async () => {
+        const getter = await client.getContractInstance(TIPPING_GETTER);
+        await getter.deploy();
+        const tipById = (await getter.methods.get_tip_by_id(contract.deployInfo.address, 1)).decodedResult;
+        assert.equal(tipById.AeTip[0].sender, wallets[0].publicKey);
     });
 });
