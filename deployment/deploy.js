@@ -20,7 +20,7 @@ const contractUtils = require('../utils/contract-utils');
 const NETWORKS = require('../config/network.json');
 const DEFAULT_NETWORK_NAME = 'local';
 
-const EXAMPLE_CONTRACT_SOURCE = './contracts/ExampleContract.aes';
+const EXAMPLE_CONTRACT_SOURCE = './contracts/TippingOracleService.aes';
 
 const deploy = async (secretKey, network, compiler) => {
     if(!secretKey) {
