@@ -1,11 +1,10 @@
-@compiler >= 4.2
-//@compiler >= 6
+@compiler >= 6
 
-contract TokenContract = //contract interface TokenContract =
+contract interface TokenContract =
   stateful entrypoint transfer_allowance : (address, address, int) => unit
   stateful entrypoint burn : (int) => unit
 
-contract Tipping = //contract interface Tipping =
+main contract Tipping =
   type tip_id = int
   type token_amount = int
   datatype tip = PostViaBurn(tip_meta, list(string), TokenContract, token_amount)

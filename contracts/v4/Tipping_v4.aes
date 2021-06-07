@@ -18,13 +18,12 @@
 // THIS IS NOT SECURITY AUDITED
 // DO NEVER USE THIS WITHOUT SECURITY AUDIT FIRST
 
-@compiler >= 4.2
-//@compiler >= 6
+@compiler >= 6
 
-contract TokenContract = //contract interface TokenContract =
+contract interface TokenContract =
   stateful entrypoint transfer_allowance : (address, address, int) => unit
 
-contract Tipping =
+main contract Tipping =
   type tip_id = int
   type token_amount = int
 

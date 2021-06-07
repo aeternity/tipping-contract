@@ -14,16 +14,16 @@
  *  OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  *  PERFORMANCE OF THIS SOFTWARE.
  */
-const assert = require('chai').assert
-const {readFileRelative} = require('aeproject-utils/utils/fs-utils');
-const {defaultWallets: wallets} = require('aeproject-config/config/node-config.json');
+const fs = require('fs');
+const assert = require('chai').assert;
+const {defaultWallets: wallets} = require('../config/wallets.json');
 
 const {Universal, MemoryAccount, Node} = require('@aeternity/aepp-sdk');
 const TippingContractUtil = require('../util/tippingContractUtil');
 
-const TIPPING_CONTRACT = readFileRelative('./contracts/v4/Tipping_v4.aes', 'utf-8');
-const TIPPING_INTERFACE = readFileRelative('./contracts/v4/Tipping_v4_Interface.aes', 'utf-8');
-const FUNGIBLE_TOKEN_CONTRACT = readFileRelative('./contracts/FungibleToken.aes', 'utf-8');
+const TIPPING_CONTRACT = fs.readFileSync('./contracts/v4/Tipping_v4.aes', 'utf-8');
+const TIPPING_INTERFACE = fs.readFileSync('./contracts/v4/Tipping_v4_Interface.aes', 'utf-8');
+const FUNGIBLE_TOKEN_CONTRACT = fs.readFileSync('./contracts/FungibleToken.aes', 'utf-8');
 
 const config = {
     url: 'http://localhost:3001/',
@@ -69,11 +69,11 @@ describe('Tipping V4 Contract', () => {
 
     it('Tipping Contract: Post via burn fail without correct allowance', async () => {
         const post1 = await contract.methods.post_via_burn('Hello World', ['media1', 'media2'], tokenContract.deployInfo.address, 100).catch(e => e);
-        assert.include(post1.decodedError, 'ALLOWANCE_NOT_EXISTENT');
+        assert.include(post1.message, 'ALLOWANCE_NOT_EXISTENT');
 
         await tokenContract.methods.create_allowance(tippingAddress, 50);
         const post2 = await contract.methods.post_via_burn('Hello World', ['media1', 'media2'], tokenContract.deployInfo.address, 100).catch(e => e);
-        assert.include(post2.decodedError, 'NON_NEGATIVE_VALUE_REQUIRED');
+        assert.include(post2.message, 'NON_NEGATIVE_VALUE_REQUIRED');
     });
 
     it('Tipping Contract: Post via burn', async () => {
