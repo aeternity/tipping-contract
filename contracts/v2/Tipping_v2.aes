@@ -212,6 +212,18 @@ main contract Tipping =
   entrypoint check_claim(url : url, expected_account : address) =
     state.oracle_service.check_persist_claim(url, expected_account, false)
 
+  entrypoint get_tip_by_id(tip_id : tip_id) : option(tip) =
+    Map.lookup(tip_id, state.tips)
+
+  entrypoint get_url_by_id(url_id : url_id) : option(url) =
+    Map.lookup(url_id, state.url_index)
+
+  entrypoint get_retip_by_id(retip_id : retip_id) : option(retip) =
+    Map.lookup(retip_id, state.retips)
+
+  entrypoint get_claim_by_url(url : url) : option(claim_gen * int * map(TokenContract, int)) =
+    Map.lookup(state.urls[url], state.claims)
+
   // INTERNAL FUNCTIONS
 
   stateful function get_url_id(url) =
