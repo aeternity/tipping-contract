@@ -55,3 +55,8 @@ main contract Tipping =
   entrypoint retips_for_tip : (tip_id) => list(retip)
   entrypoint unclaimed_for_url : (url) => (int * map(TokenContract, int))
   entrypoint check_claim : (url, address) => OracleService.success_claim
+
+  entrypoint get_tip_by_id : (tip_id) => option(tip)
+  entrypoint get_url_by_id : (url_id) => option(url)
+  entrypoint get_retip_by_id : (retip_id) => option(retip)
+  entrypoint get_claim_by_url : (url) => option(claim_gen * int * map(TokenContract, int))
